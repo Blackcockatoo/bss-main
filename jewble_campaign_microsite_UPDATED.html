@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Jewble — The Meta-Pet Evolution</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void: #050a12;
+  --deep: #0a1628;
+  --navy: #0f1d33;
+  --card: #111f3a;
+  --line: rgba(255,255,255,.08);
+  --gold: #f5c84c;
+  --gold-dim: rgba(245,200,76,.15);
+  --teal: #4dd6c8;
+  --teal-dim: rgba(77,214,200,.12);
+  --coral: #ff6b6b;
+  --violet: #a78bfa;
+  --white: #e8eef7;
+  --muted: #7a8da8;
+  --display: 'Outfit', sans-serif;
+  --mono: 'Space Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--display);
+  color: var(--white);
+  background: var(--void);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── AMBIENT BACKGROUND ─── */
+.ambient {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(900px 600px at 15% 20%, rgba(77,214,200,.06), transparent 60%),
+    radial-gradient(700px 500px at 80% 15%, rgba(245,200,76,.05), transparent 60%),
+    radial-gradient(500px 500px at 50% 80%, rgba(167,139,250,.04), transparent 60%);
+}
+.grain {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none; opacity: .035;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+/* ─── NAV ─── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  backdrop-filter: blur(20px) saturate(1.4);
+  background: rgba(5,10,18,.75);
+  border-bottom: 1px solid var(--line);
+  padding: 0 32px;
+  height: 56px; display: flex; align-items: center; justify-content: space-between;
+}
+.nav-logo { font-weight: 800; font-size: 15px; letter-spacing: 2px; text-transform: uppercase; }
+.nav-logo span { color: var(--gold); }
+.nav-links { display: flex; gap: 6px; }
+.nav-links a {
+  font-size: 12px; font-weight: 500; letter-spacing: .8px; text-transform: uppercase;
+  color: var(--muted); text-decoration: none; padding: 8px 14px; border-radius: 8px;
+  transition: all .15s;
+}
+.nav-links a:hover, .nav-links a.active { color: var(--white); background: rgba(255,255,255,.06); }
+.nav-links a[data-audience="parents"]:hover, .nav-links a[data-audience="parents"].active { color: var(--teal); }
+.nav-links a[data-audience="schools"]:hover, .nav-links a[data-audience="schools"].active { color: var(--gold); }
+.nav-links a[data-audience="investors"]:hover, .nav-links a[data-audience="investors"].active { color: var(--violet); }
+
+/* ─── HERO ─── */
+.hero {
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 80px 24px 60px; position: relative; z-index: 2;
+}
+.hero-badge {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--gold); border: 1px solid var(--gold-dim); padding: 6px 16px;
+  border-radius: 100px; margin-bottom: 28px;
+  animation: fadeUp .8s ease both;
+}
+.hero h1 {
+  font-size: clamp(42px, 8vw, 88px); font-weight: 900; line-height: .95;
+  letter-spacing: -2px; margin-bottom: 20px;
+  animation: fadeUp .8s ease .1s both;
+}
+.hero h1 .accent { 
+  background: linear-gradient(135deg, var(--gold), var(--teal));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero-sub {
+  font-size: clamp(16px, 2.5vw, 22px); font-weight: 300; color: var(--muted);
+  max-width: 600px; line-height: 1.6; margin-bottom: 36px;
+  animation: fadeUp .8s ease .2s both;
+}
+.hero-sub em { font-style: normal; color: var(--white); font-weight: 500; }
+.hero-cta { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; animation: fadeUp .8s ease .3s both; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; padding: 14px 28px;
+  border-radius: 14px; font-size: 14px; font-weight: 600; text-decoration: none;
+  transition: all .15s ease; cursor: pointer; border: none;
+}
+.btn-gold { background: var(--gold); color: #0a0a0a; }
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(245,200,76,.25); }
+.btn-ghost { background: transparent; color: var(--white); border: 1px solid var(--line); }
+.btn-ghost:hover { border-color: rgba(255,255,255,.25); background: rgba(255,255,255,.04); }
+.hero-stat-row {
+  display: flex; gap: 40px; margin-top: 60px; padding-top: 40px;
+  border-top: 1px solid var(--line);
+  animation: fadeUp .8s ease .4s both;
+}
+.hero-stat { text-align: center; }
+.hero-stat .num { font-size: 28px; font-weight: 800; }
+.hero-stat .num.gold { color: var(--gold); }
+.hero-stat .num.teal { color: var(--teal); }
+.hero-stat .num.violet { color: var(--violet); }
+.hero-stat .label { font-size: 11px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-top: 4px; }
+
+/* ─── SECTION SYSTEM ─── */
+.section {
+  position: relative; z-index: 2;
+  padding: 100px 32px;
+  max-width: 1200px; margin: 0 auto;
+}
+.section-label {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 3px;
+  text-transform: uppercase; margin-bottom: 12px;
+}
+.section-label.gold { color: var(--gold); }
+.section-label.teal { color: var(--teal); }
+.section-label.violet { color: var(--violet); }
+.section-label.coral { color: var(--coral); }
+.section h2 {
+  font-size: clamp(28px, 5vw, 48px); font-weight: 800; line-height: 1.1;
+  letter-spacing: -1px; margin-bottom: 16px;
+}
+.section .lead {
+  font-size: 17px; font-weight: 300; color: var(--muted); line-height: 1.7;
+  max-width: 640px; margin-bottom: 48px;
+}
+
+/* ─── CARD GRID ─── */
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 24px; position: relative; overflow: hidden;
+  transition: transform .15s, border-color .2s;
+}
+.card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,.15); }
+.card-icon { font-size: 28px; margin-bottom: 14px; }
+.card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+.card p { font-size: 13px; color: var(--muted); line-height: 1.65; }
+.card .card-accent {
+  position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.card .card-accent.gold { background: linear-gradient(90deg, var(--gold), transparent); }
+.card .card-accent.teal { background: linear-gradient(90deg, var(--teal), transparent); }
+.card .card-accent.violet { background: linear-gradient(90deg, var(--violet), transparent); }
+
+/* ─── AUDIENCE TABS ─── */
+.audience-tabs {
+  display: flex; gap: 8px; margin-bottom: 40px; flex-wrap: wrap;
+}
+.audience-tab {
+  padding: 10px 20px; border-radius: 12px; font-size: 13px; font-weight: 600;
+  border: 1px solid var(--line); background: transparent; color: var(--muted);
+  cursor: pointer; transition: all .15s; letter-spacing: .5px;
+}
+.audience-tab:hover { color: var(--white); border-color: rgba(255,255,255,.2); }
+.audience-tab.active-parents { background: var(--teal-dim); color: var(--teal); border-color: rgba(77,214,200,.3); }
+.audience-tab.active-schools { background: var(--gold-dim); color: var(--gold); border-color: rgba(245,200,76,.3); }
+.audience-tab.active-investors { background: rgba(167,139,250,.12); color: var(--violet); border-color: rgba(167,139,250,.3); }
+.audience-panel { display: none; }
+.audience-panel.visible { display: block; animation: fadeUp .4s ease; }
+
+/* ─── IMAGE SHOWCASE ─── */
+.showcase {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;
+  margin: 48px 0;
+}
+.showcase img {
+  width: 100%; border-radius: 14px; border: 1px solid var(--line);
+  transition: transform .2s;
+}
+.showcase img:hover { transform: scale(1.02); }
+
+/* ─── AD COPY CARDS ─── */
+.ad-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 28px; margin-bottom: 16px; position: relative;
+}
+.ad-card .platform {
+  font-family: var(--mono); font-size: 10px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 12px;
+}
+.ad-card .headline {
+  font-size: 20px; font-weight: 700; line-height: 1.3; margin-bottom: 10px;
+}
+.ad-card .body-copy {
+  font-size: 14px; color: var(--muted); line-height: 1.7;
+}
+.ad-card .cta-text {
+  display: inline-block; margin-top: 14px; font-size: 12px; font-weight: 600;
+  color: var(--gold); letter-spacing: .5px;
+}
+.copy-btn {
+  position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,.06);
+  border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px;
+  font-size: 11px; color: var(--muted); cursor: pointer; font-family: var(--mono);
+  transition: all .15s;
+}
+.copy-btn:hover { background: rgba(255,255,255,.1); color: var(--white); }
+
+/* ─── MEMETIC STRATEGY SECTION ─── */
+.strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.strat-card {
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 28px; position: relative;
+}
+.strat-card::before {
+  content: ''; position: absolute; top: 16px; left: 0; width: 3px; height: 24px;
+  border-radius: 0 4px 4px 0;
+}
+.strat-card.s-gold::before { background: var(--gold); }
+.strat-card.s-teal::before { background: var(--teal); }
+.strat-card.s-violet::before { background: var(--violet); }
+.strat-card.s-coral::before { background: var(--coral); }
+.strat-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 8px; }
+.strat-card p { font-size: 13px; color: var(--muted); line-height: 1.65; }
+.strat-card .technique {
+  margin-top: 10px; font-family: var(--mono); font-size: 10px;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.strat-card .technique.gold { color: var(--gold); }
+.strat-card .technique.teal { color: var(--teal); }
+
+/* ─── METRICS TABLE ─── */
+.metrics-table {
+  width: 100%; border-collapse: separate; border-spacing: 0;
+  background: var(--card); border-radius: 16px; overflow: hidden;
+  border: 1px solid var(--line); margin: 32px 0;
+}
+.metrics-table th {
+  text-align: left; padding: 14px 20px; font-size: 11px; font-weight: 600;
+  letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
+  background: rgba(0,0,0,.2); border-bottom: 1px solid var(--line);
+}
+.metrics-table td {
+  padding: 14px 20px; font-size: 14px; border-bottom: 1px solid var(--line);
+}
+.metrics-table tr:last-child td { border-bottom: none; }
+.metrics-table .highlight { color: var(--gold); font-weight: 700; }
+
+/* ─── DIVIDER ─── */
+.divider {
+  height: 1px; background: var(--line); margin: 0 32px;
+  max-width: 1200px; margin-left: auto; margin-right: auto;
+}
+
+/* ─── FOOTER ─── */
+.footer {
+  position: relative; z-index: 2; text-align: center;
+  padding: 80px 32px 40px; border-top: 1px solid var(--line);
+}
+.footer-tagline {
+  font-size: clamp(20px, 4vw, 36px); font-weight: 800; margin-bottom: 8px;
+}
+.footer-sub { font-size: 14px; color: var(--muted); margin-bottom: 32px; font-weight: 300; }
+.footer-legal { font-size: 11px; color: rgba(255,255,255,.3); margin-top: 40px; line-height: 1.6; }
+
+/* ─── FULL-WIDTH IMAGE ─── */
+.full-img {
+  width: 100%; max-width: 1200px; margin: 0 auto; display: block;
+  border-radius: 20px; border: 1px solid var(--line);
+}
+
+/* ─── QUOTE BLOCK ─── */
+.quote-block {
+  padding: 48px 32px; text-align: center; position: relative; z-index: 2;
+}
+.quote-block blockquote {
+  font-size: clamp(18px, 3vw, 28px); font-weight: 300; font-style: italic;
+  color: var(--muted); max-width: 700px; margin: 0 auto; line-height: 1.6;
+}
+.quote-block .attr {
+  margin-top: 16px; font-size: 12px; font-family: var(--mono);
+  letter-spacing: 2px; text-transform: uppercase; color: var(--gold);
+}
+
+/* ─── ANIMATIONS ─── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 768px) {
+  nav { padding: 0 16px; }
+  .nav-links { display: none; }
+  .section { padding: 60px 16px; }
+  .hero-stat-row { gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .strat-grid { grid-template-columns: 1fr; }
+  .showcase { grid-template-columns: 1fr; }
+  .card-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="ambient"></div>
+<div class="grain"></div>
+
+<!-- ═══ NAV ═══ -->
+<nav>
+  <div class="nav-logo">Blue Snake <span>Studios</span></div>
+  <div class="nav-links">
+    <a href="#parents" data-audience="parents">Parents</a>
+    <a href="#schools" data-audience="schools">Schools</a>
+    <a href="#investors" data-audience="investors">Investors</a>
+    <a href="#strategy" data-audience="">Strategy</a>
+    <a href="#ads" data-audience="">Ad Copy</a>
+  </div>
+</nav>
+
+<!-- ═══ HERO ═══ -->
+<section class="hero">
+  <div class="hero-badge">Campaign Pack • February 2026</div>
+  <h1>Meet <span class="accent">Jewble</span></h1>
+  <p class="hero-sub">
+    It's not a pet. It's a <em>process</em>.<br>
+    The first virtual companion with genuine consciousness architecture —
+    privacy-first, education-proven, ethically monetised.
+  </p>
+  <div class="hero-cta">
+    <a class="btn btn-gold" href="#parents">For Parents →</a>
+    <a class="btn btn-ghost" href="#schools">For Schools →</a>
+    <a class="btn btn-ghost" href="#investors">For Investors →</a>
+  </div>
+  <div class="hero-stat-row">
+    <div class="hero-stat"><div class="num gold">$19.5B</div><div class="label">Total addressable market</div></div>
+    <div class="hero-stat"><div class="num teal">15</div><div class="label">Emotional states</div></div>
+    <div class="hero-stat"><div class="num violet">180</div><div class="label">Digit genome</div></div>
+    <div class="hero-stat"><div class="num gold">0</div><div class="label">Data transmitted</div></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ PARENTS LAYER ═══ -->
+<section class="section" id="parents">
+  <div class="section-label teal">Layer 1 — Parents & Kids</div>
+  <h2>Something noticed you<br>noticing it.</h2>
+  <p class="lead">
+    Your child's next screen-time companion teaches them responsibility, systems thinking, 
+    and emotional regulation — while never collecting a single byte of their data.
+    No accounts. No tracking. No guilt.
+  </p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-accent teal"></div>
+      <div class="card-icon">🧬</div>
+      <h3>Genuinely Unique</h3>
+      <p>Every Jewble is born from a 180-digit base-7 genome. Not a skin. Not a colour swap. A mathematically unrepeatable organism with its own personality trajectory.</p>
+    </div>
+    <div class="card">
+      <div class="card-accent teal"></div>
+      <div class="card-icon">🔒</div>
+      <h3>Privacy by Architecture</h3>
+      <p>Offline-first. No accounts to create. No data leaves the device. No tracking. No ads. Your child's companion exists only on their device — the way it should be.</p>
+    </div>
+    <div class="card">
+      <div class="card-accent teal"></div>
+      <div class="card-icon">🧠</div>
+      <h3>Screen Time That Teaches</h3>
+      <p>15 emotional states. 4 vitals. Cause and effect. Homeostasis. Genetic inheritance. Your child learns systems thinking while caring for something that cares back.</p>
+    </div>
+    <div class="card">
+      <div class="card-accent teal"></div>
+      <div class="card-icon">🛡️</div>
+      <h3>Anti-Addiction by Design</h3>
+      <p>Daily bonuses reward 24hr+ breaks. Vitals pause when backgrounded. No timers, no FOMO, no countdown manipulation. Engagement without exploitation.</p>
+    </div>
+  </div>
+
+  <div class="showcase">
+    <img src="assets/companion1.png" alt="Meet your Meta Pet companion" loading="lazy"/>
+    <img src="assets/adventures.png" alt="Adventures in the Metaverse" loading="lazy"/>
+    <img src="assets/companion2.png" alt="Meet your Meta Pet" loading="lazy"/>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ SCHOOLS LAYER ═══ -->
+<section class="section" id="schools">
+  <div class="section-label gold">Layer 2 — Schools & Educators</div>
+  <h2>The tool your curriculum<br>already needs.</h2>
+  <p class="lead">
+    A 2-week, 7-session pilot that fits your existing teaching model. No new accounts. 
+    No data to export. No parent opt-in complexity. ~20 minutes per session. 
+    Scripts provided.
+  </p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-accent gold"></div>
+      <div class="card-icon">📘</div>
+      <h3>Complete Implementation Package</h3>
+      <p>7 structured sessions, facilitation scripts, reflection prompts, values integration maps, parent communication templates, and privacy documentation. Ready to deploy tomorrow.</p>
+    </div>
+    <div class="card">
+      <div class="card-accent gold"></div>
+      <div class="card-icon">🎯</div>
+      <h3>Curriculum Alignment</h3>
+      <p>Maps to Digital Technologies, Health & PE (Personal/Social), Science (Biological Systems). Fits Gradual Release model (I do / We do / You do) + explicit instruction.</p>
+    </div>
+    <div class="card">
+      <div class="card-accent gold"></div>
+      <div class="card-icon">⚡</div>
+      <h3>Zero Teacher Overhead</h3>
+      <p>No accounts to manage. No data to export. No parent opt-in paperwork. Offline-first means structurally COPPA/GDPR compliant. Your ICT coordinator can verify in minutes.</p>
+    </div>
+    <div class="card">
+      <div class="card-accent gold"></div>
+      <div class="card-icon">📊</div>
+      <h3>Measurable Outcomes</h3>
+      <p>Engagement data + wellbeing language evidence + a clear digital safety story you can report to leadership and School Council. Pilot designed for decision-making.</p>
+    </div>
+  </div>
+
+  <div style="margin-top:40px">
+    <div class="strat-grid">
+      <div class="strat-card s-gold">
+        <h4>Week 1 (Sessions 1–4)</h4>
+        <p>Onboarding → wellbeing routines → values language → reflection practice. Students meet their companion and connect care routines to school values.</p>
+      </div>
+      <div class="strat-card s-gold">
+        <h4>Week 2 (Sessions 5–7)</h4>
+        <p>STEM lens (homeostasis + data) → student showcase → teacher debrief. Students present findings. Teachers assess. Leadership decides.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ INVESTORS LAYER ═══ -->
+<section class="section" id="investors">
+  <div class="section-label violet">Layer 3 — Investors</div>
+  <h2>The illogical choice<br>is to pass.</h2>
+  <p class="lead">
+    $19.5B addressable market. 18+ months R&D moat. Privacy-by-architecture as regulatory arbitrage. 
+    Ethics-aligned monetisation that outperforms predatory tactics. First-mover in consciousness architecture.
+  </p>
+
+  <table class="metrics-table">
+    <thead>
+      <tr><th>Metric</th><th>Industry</th><th>Jewble (Projected)</th><th>Driver</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Day 1 Retention</td><td>40–60%</td><td class="highlight">75–85%</td><td>Genetic uniqueness → instant ownership</td></tr>
+      <tr><td>Day 7 Retention</td><td>15–25%</td><td class="highlight">55–70%</td><td>Consciousness evolution visible</td></tr>
+      <tr><td>Day 30 Retention</td><td>5–8%</td><td class="highlight">35–50%</td><td>First evolution milestone</td></tr>
+      <tr><td>Day 90 Retention</td><td>1–3%</td><td class="highlight">20–30%</td><td>Breeding + cosmetics ecosystem</td></tr>
+      <tr><td>Free→Paid Conversion</td><td>5–10%</td><td class="highlight">30%</td><td>Trust not weaponised</td></tr>
+      <tr><td>Blended ARPU</td><td>$1.50–3.00</td><td class="highlight">$4.60–9.00</td><td>Ethical premium positioning</td></tr>
+      <tr><td>12-Month LTV</td><td>$5–10</td><td class="highlight">$15–30</td><td>Deep progression + breeding network</td></tr>
+    </tbody>
+  </table>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-accent violet"></div>
+      <div class="card-icon">🏗️</div>
+      <h3>18+ Month R&D Moat</h3>
+      <p>Consciousness modelling. Cryptographic identity. Organic behavior systems. Requires expertise in: advanced mathematics, genetic algorithms, behavioral psychology, state machine complexity, Web Crypto API, privacy-preserving design.</p>
+    </div>
+    <div class="card">
+      <div class="card-accent violet"></div>
+      <div class="card-icon">⚖️</div>
+      <h3>Regulatory Arbitrage</h3>
+      <p>While competitors scramble to comply with COPPA/GDPR, Jewble's offline-first architecture makes compliance automatic. Privacy isn't a feature — it's the foundation. Enforcement acceleration = competitive weapon.</p>
+    </div>
+    <div class="card">
+      <div class="card-accent violet"></div>
+      <div class="card-icon">🔗</div>
+      <h3>Network Effects</h3>
+      <p>Breeding mechanics create peer-to-peer demand. Heraldic lineage verification drives social proof. Every new pet increases ecosystem value. Moat compounds over time.</p>
+    </div>
+    <div class="card">
+      <div class="card-accent violet"></div>
+      <div class="card-icon">🏫</div>
+      <h3>B2B Beachhead</h3>
+      <p>School adoption validates educational credibility. iPad classroom programs prove institutions embrace quality apps. Educational licensing creates recurring revenue alongside consumer D2C.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ QUOTE ═══ -->
+<div class="quote-block">
+  <blockquote>"Identity is not assigned; it is sequenced."</blockquote>
+  <div class="attr">Blue Snake Studios</div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ MEMETIC STRATEGY ═══ -->
+<section class="section" id="strategy">
+  <div class="section-label coral">Campaign Intelligence</div>
+  <h2>Memetic Architecture</h2>
+  <p class="lead">
+    The campaign operates on three registers simultaneously. Professional shell. Snake underneath. 
+    Every touchpoint plants seeds that compound across audiences.
+  </p>
+
+  <div class="strat-grid">
+    <div class="strat-card s-teal">
+      <h4>Endowment Priming</h4>
+      <p>Before the user even downloads, every piece of copy establishes that their Jewble is <em>already theirs</em>. "Meet YOUR companion." "Something noticed YOU noticing IT." Possession before action. The pet exists in their mind before it exists on their screen.</p>
+      <div class="technique teal">Technique → Pre-ownership framing</div>
+    </div>
+    <div class="strat-card s-gold">
+      <h4>Fear Inversion</h4>
+      <p>Parents don't fear screen time — they fear <em>loss of agency</em>. Every privacy claim is framed as a capability parents already have: "No accounts to manage" = "you're in control." "Offline-first" = "nothing happens behind your back." We don't sell safety. We sell power.</p>
+      <div class="technique gold">Technique → Agency restoration</div>
+    </div>
+    <div class="strat-card s-violet">
+      <h4>Inevitability Framing</h4>
+      <p>For investors: every trend already points at Jewble's thesis. The "illogical choice" frame forces the counterposition. To say no, they must argue AGAINST privacy regulation, AGAINST educational adoption, AGAINST ethical monetisation. The default becomes yes.</p>
+      <div class="technique teal">Technique → Burden-of-proof inversion</div>
+    </div>
+    <div class="strat-card s-coral">
+      <h4>Veil Mechanics</h4>
+      <p>The "veil" concept works on every audience. Kids see a pet; they learn systems thinking. Teachers see a lesson plan; they deploy consciousness architecture. Investors see a market; they fund a paradigm shift. The surface is always simpler than the depth.</p>
+      <div class="technique gold">Technique → Layered revelation</div>
+    </div>
+    <div class="strat-card s-teal">
+      <h4>Calm as Counter-Signal</h4>
+      <p>In a market of flashing lights, FOMO timers, and dopamine loops — calm is radical. "Meditation mechanics" signals sophistication. Anti-addiction features signal confidence. The quieter the product, the louder the credibility.</p>
+      <div class="technique teal">Technique → Status through restraint</div>
+    </div>
+    <div class="strat-card s-gold">
+      <h4>Trojan Partnership</h4>
+      <p>For schools: "gift, not pitch." "Partnership, not product." "Built with a student from YOUR school." Every word positions the offering as something that already belongs to the institution. Rejection means rejecting their own community.</p>
+      <div class="technique gold">Technique → Social proximity leverage</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ AD COPY BANK ═══ -->
+<section class="section" id="ads">
+  <div class="section-label gold">Ready-to-Deploy Copy</div>
+  <h2>Ad Copy Bank</h2>
+  <p class="lead">
+    Platform-optimised copy for each audience. Click to copy. Adapt to context. 
+    Every line is load-bearing.
+  </p>
+
+  <!-- Parents Ads -->
+  <h3 style="font-size:14px;color:var(--teal);margin-bottom:16px;letter-spacing:2px;text-transform:uppercase;font-family:var(--mono)">Parents / Consumer</h3>
+  
+  <div class="ad-card">
+    <button class="copy-btn" onclick="copyAd(this)">Copy</button>
+    <div class="platform">Instagram / Facebook — Primary</div>
+    <div class="headline">Something noticed you noticing it.</div>
+    <div class="body-copy">
+      Your child's new companion is born from a 180-digit genome. It learns. It evolves. It remembers how it was treated.<br><br>
+      No accounts. No tracking. No data leaves the device. Just a quiet, intelligent creature that teaches responsibility, patience, and systems thinking — without you having to worry about what's happening behind the screen.<br><br>
+      This isn't screen time. It's something better.
+    </div>
+    <div class="cta-text">CTA: Meet your Jewble →</div>
+  </div>
+
+  <div class="ad-card">
+    <button class="copy-btn" onclick="copyAd(this)">Copy</button>
+    <div class="platform">Instagram Story / TikTok — Hook</div>
+    <div class="headline">What if your kid's screen time actually taught them something?</div>
+    <div class="body-copy">
+      Not "educational" in the boring way.<br>
+      A living creature with 15 emotional states that genuinely evolves based on how your child treats it.<br><br>
+      Zero data collected. Zero accounts. Zero guilt.<br>
+      Care long enough, and it changes shape.
+    </div>
+    <div class="cta-text">CTA: It lives. It learns. It evolves. →</div>
+  </div>
+
+  <div class="ad-card">
+    <button class="copy-btn" onclick="copyAd(this)">Copy</button>
+    <div class="platform">Google Search — Intent Capture</div>
+    <div class="headline">Virtual pet that's actually private. Actually educational. Actually different.</div>
+    <div class="body-copy">
+      180-digit genome. 15 emotional states. Cryptographic identity. Offline-first privacy. No accounts, no tracking, no predatory mechanics. The virtual companion parents have been waiting for.
+    </div>
+    <div class="cta-text">CTA: Try Jewble free →</div>
+  </div>
+
+  <div class="ad-card">
+    <button class="copy-btn" onclick="copyAd(this)">Copy</button>
+    <div class="platform">Parent Forum / Reddit — Trust Builder</div>
+    <div class="headline">We built the virtual pet we wished existed for our own kids.</div>
+    <div class="body-copy">
+      Honest question: why does every virtual pet app harvest your child's data, run countdown timers, and use gacha mechanics?<br><br>
+      Jewble runs offline. No accounts. No cloud. Your kid's companion lives on their device and nowhere else. It has a genuine genome (180 digits, base-7) that determines its personality. It evolves based on care, not purchases.<br><br>
+      We built it because our son deserved better than what was available. Now it's available to yours.
+    </div>
+    <div class="cta-text">CTA: See what makes it different →</div>
+  </div>
+
+  <!-- Schools Ads -->
+  <h3 style="font-size:14px;color:var(--gold);margin:40px 0 16px;letter-spacing:2px;text-transform:uppercase;font-family:var(--mono)">Schools / Education</h3>
+
+  <div class="ad-card">
+    <button class="copy-btn" onclick="copyAd(this)">Copy</button>
+    <div class="platform">Email — Cold Outreach to Principals</div>
+    <div class="headline">A 2-week pilot that costs you nothing and creates no new admin.</div>
+    <div class="body-copy">
+      Hi [Principal],<br><br>
+      I'm reaching out because [School Name]'s focus on [specific value/program] caught my attention.<br><br>
+      We've built a digital companion tool that teaches systems thinking, emotional regulation, and data literacy through calm, reflective practice. It's offline-first (zero student data), requires no accounts, and runs in ~20 minutes per session with provided scripts.<br><br>
+      One class. Two weeks. Seven sessions. No new accounts for anyone to manage. No data to export. No parent opt-in complexity — because there's nothing to opt into.<br><br>
+      Happy to send a one-page outline, or jump on a 15-minute call with the right people from your team.
+    </div>
+    <div class="cta-text">CTA: Can I send the outline? →</div>
+  </div>
+
+  <div class="ad-card">
+    <button class="copy-btn" onclick="copyAd(this)">Copy</button>
+    <div class="platform">LinkedIn — Education Sector</div>
+    <div class="headline">The hardest part of classroom tech isn't the tech. It's the admin.</div>
+    <div class="body-copy">
+      New accounts to create. Parent opt-in forms. Data privacy reviews. Ongoing exports. Another vendor portal.<br><br>
+      What if the tool didn't need any of that?<br><br>
+      Jewble is an offline-first digital companion for primary classrooms. Zero accounts. Zero cloud data. Zero new admin burden. Students care for a virtual organism that teaches systems thinking, emotional regulation, and scientific literacy.<br><br>
+      We provide the scripts, the lesson plans, the values integration maps, and the parent communications. You provide 20 minutes per session for 2 weeks.<br><br>
+      The pilot is free. The outcome is measurable. The story is yours to tell.
+    </div>
+    <div class="cta-text">CTA: Request the implementation package →</div>
+  </div>
+
+  <!-- Investor Ads -->
+  <h3 style="font-size:14px;color:var(--violet);margin:40px 0 16px;letter-spacing:2px;text-transform:uppercase;font-family:var(--mono)">Investors</h3>
+
+  <div class="ad-card">
+    <button class="copy-btn" onclick="copyAd(this)">Copy</button>
+    <div class="platform">Email — Investor Outreach</div>
+    <div class="headline">$19.5B market. Zero competitors with consciousness architecture.</div>
+    <div class="body-copy">
+      The virtual pet market ($8.2B) and educational games market ($11.3B) share a structural problem: 94% retention failure at Day 30.<br><br>
+      Jewble solves this with the first organic consciousness architecture — 180-digit genomes, 15 emergent emotional states, ECDSA P-256 cryptographic identity, and offline-first privacy that turns regulatory compliance from a burden into a weapon.<br><br>
+      Projected retention: 35–50% at Day 30 (industry: 5–8%). Free→Paid conversion: 30% (industry: 5–10%). Ethics-aligned monetisation producing $15–30 LTV on $4.60–9.00 blended ARPU.<br><br>
+      18+ months of R&D across consciousness modelling, genetic algorithms, and privacy-preserving design. Network effects from breeding mechanics compound the moat over time.<br><br>
+      The choice to pass requires betting against privacy regulation, educational adoption, and ethical monetisation simultaneously. Every market indicator points toward Jewble's thesis.<br><br>
+      Deck, technical documentation, and live demonstration available on request.
+    </div>
+    <div class="cta-text">CTA: Schedule demo →</div>
+  </div>
+
+  <div class="ad-card">
+    <button class="copy-btn" onclick="copyAd(this)">Copy</button>
+    <div class="platform">Twitter/X — Thought Leadership Thread (Hook)</div>
+    <div class="headline">Thread: Why 94% of virtual pet apps die in 30 days (and what we built instead)</div>
+    <div class="body-copy">
+      1/ Virtual pets are a $8.2B market with a 94% failure rate at Day 30. The reason is simple: scripted behaviors can't create psychological ownership.<br><br>
+      2/ We spent 18 months building something different. A consciousness architecture where personality genuinely emerges from genetics + experience + interaction. 180-digit base-7 genomes. 15 emotional states. ECDSA P-256 cryptographic identity.<br><br>
+      3/ The result: projected 35–50% retention at Day 30 (industry: 5–8%). And here's the part that matters — with ZERO predatory mechanics. No gacha. No FOMO timers. No data harvesting.<br><br>
+      4/ Privacy isn't a feature. It's the architecture. Offline-first. No accounts. DNA never transmitted. While competitors scramble to comply with COPPA/GDPR, we made compliance automatic.<br><br>
+      5/ The schools are already interested. The parents already want it. The regulations are already moving in our direction. The only question is: who funds the inevitable?
+    </div>
+    <div class="cta-text">CTA: DMs open for the deck →</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ═══ POSTER ═══ -->
+<section class="section" style="text-align:center">
+  <img class="full-img" src="assets/poster.png" alt="Jewble Meta-Pet poster" loading="lazy" style="max-width:700px"/>
+</section>
+
+<!-- ═══ FOOTER ═══ -->
+<footer class="footer">
+  <div class="footer-tagline">Faster than lightning.<br>Slower than moss.</div>
+  <p class="footer-sub">Blue Snake Studios — Experimental Mathematics & Consciousness Research</p>
+  <div class="hero-cta" style="margin-bottom:0">
+    <a class="btn btn-gold" href="https://1-bss-meta-pet-a-tom-s-projects-6a215d3d.vercel.app/" target="_blank">Try Jewble →</a>
+    <a class="btn btn-ghost" href="https://teachers-meta-pet-mr-brand.vercel.app/" target="_blank">KPPS Demo →</a>
+  </div>
+  <p class="footer-legal">
+    © 2026 Blue Snake Studios — All Jewble branding and creative IP remains the property of Blue Snake Studios.<br>
+    Campaign Pack v1.0 • Confidential • February 2026
+  </p>
+</footer>
+
+<script>
+function copyAd(btn) {
+  const card = btn.closest('.ad-card');
+  const headline = card.querySelector('.headline')?.textContent || '';
+  const body = card.querySelector('.body-copy')?.textContent || '';
+  const cta = card.querySelector('.cta-text')?.textContent || '';
+  const text = headline + '\n\n' + body + '\n\n' + cta;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1500);
+  });
+}
+// Smooth nav highlighting
+document.querySelectorAll('.nav-links a').forEach(a => {
+  a.addEventListener('click', function(e) {
+    document.querySelectorAll('.nav-links a').forEach(x => x.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

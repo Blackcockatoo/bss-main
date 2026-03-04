@@ -1,0 +1,157 @@
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8"/>
+      <meta name="viewport" content="width=device-width,initial-scale=1"/>
+      <title>Jewble — For Schools</title>
+      <style>
+:root{
+  --void:#050a12; --card:#111f3a; --line:rgba(255,255,255,.10);
+  --gold:#f5c84c; --gold-dim:rgba(245,200,76,.14);
+  --teal:#4dd6c8; --teal-dim:rgba(77,214,200,.12);
+  --violet:#a78bfa; --violet-dim:rgba(167,139,250,.12);
+  --coral:#ff6b6b;
+  --text:#e8eef7; --muted:#7a8da8;
+  --display: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--display);background:var(--void);color:var(--text);overflow-x:hidden}
+a{color:inherit}
+.ambient{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+  radial-gradient(900px 600px at 15% 20%, rgba(77,214,200,.06), transparent 60%),
+  radial-gradient(700px 500px at 80% 15%, rgba(245,200,76,.05), transparent 60%),
+  radial-gradient(500px 500px at 50% 80%, rgba(167,139,250,.04), transparent 60%);
+}
+.grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-repeat:repeat;
+}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;
+  backdrop-filter: blur(18px) saturate(1.4);
+  background: rgba(5,10,18,.78);
+  border-bottom:1px solid var(--line);
+  height:56px;display:flex;align-items:center;justify-content:space-between;
+  padding:0 18px;
+}
+.nav-logo{font-weight:900;letter-spacing:2px;text-transform:uppercase;font-size:13px}
+.nav-logo span{color:var(--gold)}
+.nav-links{display:flex;gap:6px;flex-wrap:wrap}
+.nav-links a{font-size:11px;letter-spacing:.9px;text-transform:uppercase;text-decoration:none;
+  padding:8px 12px;border-radius:10px;color:var(--muted);border:1px solid transparent}
+.nav-links a:hover{background:rgba(255,255,255,.06);color:var(--text)}
+.btn{display:inline-flex;align-items:center;gap:10px;padding:13px 22px;border-radius:14px;
+  font-size:14px;font-weight:700;text-decoration:none;border:1px solid transparent;cursor:pointer;transition:transform .15s, box-shadow .15s, background .15s}
+.btn:hover{transform:translateY(-2px)}
+.btn-gold{background:var(--gold);color:#0a0a0a}
+.btn-gold:hover{box-shadow:0 10px 30px rgba(245,200,76,.22)}
+.btn-ghost{background:transparent;border-color:var(--line);color:var(--text)}
+.btn-ghost:hover{border-color:rgba(255,255,255,.22);background:rgba(255,255,255,.04)}
+.hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;
+  padding:92px 20px 40px;position:relative;z-index:2}
+.hero-inner{max-width:980px}
+.badge{font-family:var(--mono);font-size:11px;letter-spacing:3px;text-transform:uppercase;
+  display:inline-block;padding:6px 14px;border-radius:999px;border:1px solid var(--line);color:var(--muted);margin-bottom:18px}
+h1{font-size:clamp(38px, 6vw, 74px);line-height:.96;letter-spacing:-1.5px;margin-bottom:14px;font-weight:900}
+.accent{background:linear-gradient(135deg,var(--gold),var(--teal));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sub{font-size:clamp(15px,2.4vw,20px);color:var(--muted);line-height:1.65;max-width:720px;margin:0 auto 24px}
+.sub em{font-style:normal;color:var(--text);font-weight:650}
+.section{position:relative;z-index:2;max-width:1100px;margin:0 auto;padding:72px 18px}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-bottom:10px}
+.kicker.gold{color:var(--gold)} .kicker.teal{color:var(--teal)} .kicker.violet{color:var(--violet)} .kicker.coral{color:var(--coral)}
+h2{font-size:clamp(26px,4.5vw,44px);line-height:1.1;letter-spacing:-1px;margin-bottom:10px;font-weight:850}
+.lead{color:var(--muted);line-height:1.7;font-size:16px;max-width:760px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:26px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;position:relative;overflow:hidden}
+.card .bar{position:absolute;top:0;left:0;right:0;height:2px}
+.bar.gold{background:linear-gradient(90deg,var(--gold),transparent)}
+.bar.teal{background:linear-gradient(90deg,var(--teal),transparent)}
+.bar.violet{background:linear-gradient(90deg,var(--violet),transparent)}
+.card h3{font-size:15px;margin:10px 0 6px}
+.card p{color:var(--muted);font-size:13px;line-height:1.65}
+.split{display:grid;grid-template-columns:1.05fr .95fr;gap:18px;align-items:center;margin-top:26px}
+.split img{width:100%;border-radius:18px;border:1px solid var(--line)}
+hr{border:none;border-top:1px solid var(--line);max-width:1100px;margin:0 auto}
+.callout{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:18px}
+.callout ul{margin:10px 0 0 18px;line-height:1.7;color:var(--muted);font-size:14px}
+.footer{position:relative;z-index:2;padding:54px 18px 40px;text-align:center;border-top:1px solid var(--line)}
+.footer .tag{font-weight:900;font-size:clamp(18px,3vw,30px);margin-bottom:6px}
+.footer .small{color:var(--muted);font-size:13px;line-height:1.6}
+@media (max-width:860px){.split{grid-template-columns:1fr}}
+</style>
+    </head>
+    <body>
+      <div class="ambient"></div><div class="grain"></div>
+      <nav>
+        <div class="nav-logo">Blue Snake <span>Studios</span></div>
+        <div class="nav-links">
+<a href="jewble-parents.html">Parents</a>
+<a href="jewble-schools.html">Schools</a>
+<a href="jewble-investors.html">Investors</a>
+<a href="#top">Top</a>
+</div>
+      </nav>
+
+      <section class="hero" id="top">
+        <div class="hero-inner">
+          <div class="badge">Schools • 2‑week pilot</div>
+          <h1>A classroom pilot<br/><span class="accent">teachers can actually run</span></h1>
+          <p class="sub">Seven short sessions. No accounts. Offline-first. Designed to support privacy-first deployment and minimise teacher workload.</p>
+          <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap"><a class="btn btn-gold" href="#schools">See the pilot →</a><a class="btn btn-ghost" href="jewble_pilot_outline_kpps.pdf">Pilot outline PDF →</a></div>
+        </div>
+      </section>
+
+      <hr/>
+
+<section class="section" id="schools">
+  <div class="kicker gold">For schools & educators</div>
+  <h2>A 2‑week pilot with<br/>near‑zero admin.</h2>
+  <p class="lead">Jewble is an offline-first classroom companion that helps students practice responsibility and emotional language through simple routines—while teaching systems thinking (vitals, states, data) in a calm, non-addictive way.</p>
+
+  <div class="grid">
+    <div class="card"><div class="bar gold"></div><h3>7 sessions / 2 weeks</h3><p>~20 minutes per session. Scripts provided. One class to start.</p></div>
+    <div class="card"><div class="bar gold"></div><h3>No accounts</h3><p>No student logins, no portals, no password resets. Less overhead for staff.</p></div>
+    <div class="card"><div class="bar gold"></div><h3>Offline-first</h3><p>No cloud sync in pilot mode. No third‑party analytics. Designed to support privacy‑first deployment.</p></div>
+    <div class="card"><div class="bar gold"></div><h3>Measurable outcomes</h3><p>Engagement evidence + wellbeing language samples + a clean digital safety story for leadership &amp; School Council.</p></div>
+  </div>
+
+  <div class="split">
+    <img src="assets/poster-gold.png" alt="Meta‑Pet poster (10^180)"/>
+    <div>
+      <div class="callout">
+        <div class="kicker gold">Pilot fit</div>
+        <ul>
+          <li>Optimised for Years 3–6 (adaptable Prep–6)</li>
+          <li>Aligns with Gradual Release (I do / We do / You do)</li>
+          <li>Maps to: Digital Technologies, Health &amp; PE (Personal/Social), Science (Biological Systems)</li>
+        </ul>
+      </div>
+      <div class="callout">
+        <div class="kicker coral">Proof you can check</div>
+        <ul>
+          <li>“No outbound calls” can be verified by ICT quickly</li>
+          <li>No accounts, no cloud data in the pilot workflow</li>
+          <li>Deployment options: browser-based, locally hosted if needed</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr/>
+
+<section class="section" id="next">
+  <div class="kicker gold">Next step</div>
+  <h2>Show, don’t tell.</h2>
+  <p class="lead">Bring one class. Two weeks. We’ll produce a clear outcome and a decision you can stand behind.</p>
+</section>
+
+
+      <footer class="footer">
+        <div class="tag">Faster than lightning.<br/>Slower than moss.</div>
+        <div class="small">Jewble / Meta‑Pet — Blue Snake Studios • February 2026</div>
+      </footer>
+    </body>
+    </html>
