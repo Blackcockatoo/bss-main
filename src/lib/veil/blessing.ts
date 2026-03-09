@@ -5,38 +5,39 @@
  * Default redemption is anonymous. Teacher only sees aggregate growth.
  */
 
-import type {
-  Blessing,
-  BlessingType,
-  BlessingMetadata,
-  BlessingVerificationResult,
-  BlessingRedemption,
-} from './types';
-import { getVault, signData } from './vault';
+import { recordBlessingRedemption, recordForgedBlessing } from "./mentor-pet";
+import { getActiveKidBondMarks } from "./pairing";
 import {
   serializeBlessingForSignature,
   verifyBlessingSignature,
-} from './signatures';
-import { recordForgedBlessing, recordBlessingRedemption } from './mentor-pet';
-import { getActiveKidBondMarks } from './pairing';
+} from "./signatures";
+import type {
+  Blessing,
+  BlessingMetadata,
+  BlessingRedemption,
+  BlessingType,
+  BlessingVerificationResult,
+} from "./types";
+import { asHubId } from "./types";
+import { getVault, signData } from "./vault";
 
 // ============================================================================
 // Code Generation
 // ============================================================================
 
 function generateBlessingCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const values = new Uint8Array(16);
   crypto.getRandomValues(values);
 
-  const code = Array.from(values, v => chars[v % chars.length]).join('');
+  const code = Array.from(values, (v) => chars[v % chars.length]).join("");
 
   // Format as XXXX-XXXX-XXXX-XXXX
   return `${code.slice(0, 4)}-${code.slice(4, 8)}-${code.slice(8, 12)}-${code.slice(12, 16)}`;
 }
 
 function normalizeCode(code: string): string {
-  return code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return code.toUpperCase().replace(/[^A-Z0-9]/g, "");
 }
 
 // ============================================================================
@@ -49,18 +50,18 @@ function normalizeCode(code: string): string {
 export async function forgeBlessing(
   type: BlessingType,
   metadata: BlessingMetadata = {},
-  passcode?: string
+  passcode?: string,
 ): Promise<Blessing | null> {
   const vault = getVault();
   if (!vault) {
-    console.warn('[Veil] Cannot forge blessing: no vault');
+    console.warn("[Veil] Cannot forge blessing: no vault");
     return null;
   }
 
   const blessingId = generateBlessingCode();
   const forgedAt = Date.now();
 
-  const blessing: Omit<Blessing, 'signature'> = {
+  const blessing: Omit<Blessing, "signature"> = {
     blessingId,
     type,
     metadata,
@@ -89,39 +90,41 @@ export async function forgeBlessing(
  */
 export function getBlessingTypeName(type: BlessingType): string {
   switch (type) {
-    case 'sticker':
-      return 'Sticker';
-    case 'aura':
-      return 'Glow Aura';
-    case 'accessory':
-      return 'Accessory';
+    case "sticker":
+      return "Sticker";
+    case "aura":
+      return "Glow Aura";
+    case "accessory":
+      return "Accessory";
     default:
-      return 'Unknown';
+      return "Unknown";
   }
 }
 
 /**
  * Get default metadata for blessing type
  */
-export function getDefaultBlessingMetadata(type: BlessingType): BlessingMetadata {
+export function getDefaultBlessingMetadata(
+  type: BlessingType,
+): BlessingMetadata {
   switch (type) {
-    case 'sticker':
+    case "sticker":
       return {
-        name: 'Mentor Sticker',
-        rarity: 'common',
-        flavorText: 'A gift from your mentor.',
+        name: "Mentor Sticker",
+        rarity: "common",
+        flavorText: "A gift from your mentor.",
       };
-    case 'aura':
+    case "aura":
       return {
-        name: 'Mentor Glow',
-        rarity: 'uncommon',
-        flavorText: 'A gentle glow of encouragement.',
+        name: "Mentor Glow",
+        rarity: "uncommon",
+        flavorText: "A gentle glow of encouragement.",
       };
-    case 'accessory':
+    case "accessory":
       return {
-        name: 'Mentor Token',
-        rarity: 'rare',
-        flavorText: 'A symbol of mentorship.',
+        name: "Mentor Token",
+        rarity: "rare",
+        flavorText: "A symbol of mentorship.",
       };
     default:
       return {};
@@ -137,7 +140,7 @@ export function getDefaultBlessingMetadata(type: BlessingType): BlessingMetadata
  */
 export async function verifyBlessing(
   code: string,
-  blessing?: Blessing
+  blessing?: Blessing,
 ): Promise<BlessingVerificationResult> {
   // If blessing object provided, verify it
   if (blessing) {
@@ -147,7 +150,7 @@ export async function verifyBlessing(
   // If just code provided, we can't verify without the full blessing
   return {
     valid: false,
-    error: 'Full blessing data required for verification',
+    error: "Full blessing data required for verification",
   };
 }
 
@@ -155,13 +158,13 @@ export async function verifyBlessing(
  * Verify a blessing object against its signature
  */
 export async function verifyBlessingObject(
-  blessing: Blessing
+  blessing: Blessing,
 ): Promise<BlessingVerificationResult> {
   const verification = await verifyBlessingSignature(blessing);
   if (!verification.valid) {
     return {
       valid: false,
-      error: 'Invalid blessing signature',
+      error: "Invalid blessing signature",
     };
   }
 
@@ -176,17 +179,17 @@ export async function verifyBlessingObject(
  */
 export function isBlessingFromBondedMentor(blessing: Blessing): boolean {
   const bonds = getActiveKidBondMarks();
-  return bonds.some(bond => bond.mentorPubKey === blessing.issuedBy);
+  return bonds.some((bond) => bond.mentorPubKey === blessing.issuedBy);
 }
 
 // ============================================================================
 // Blessing Redemption (Kid Side)
 // ============================================================================
 
-const REDEEMED_BLESSINGS_KEY = 'veil-redeemed-blessings';
+const REDEEMED_BLESSINGS_KEY = "veil-redeemed-blessings";
 
 function getRedeemedBlessings(): BlessingRedemption[] {
-  if (typeof window === 'undefined') return [];
+  if (typeof window === "undefined") return [];
 
   try {
     const stored = localStorage.getItem(REDEEMED_BLESSINGS_KEY);
@@ -194,19 +197,19 @@ function getRedeemedBlessings(): BlessingRedemption[] {
       return JSON.parse(stored);
     }
   } catch {
-    console.warn('[Veil] Failed to load redeemed blessings');
+    console.warn("[Veil] Failed to load redeemed blessings");
   }
 
   return [];
 }
 
 function saveRedeemedBlessings(redemptions: BlessingRedemption[]): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
     localStorage.setItem(REDEEMED_BLESSINGS_KEY, JSON.stringify(redemptions));
   } catch (error) {
-    console.warn('[Veil] Failed to save redeemed blessings:', error);
+    console.warn("[Veil] Failed to save redeemed blessings:", error);
   }
 }
 
@@ -216,15 +219,17 @@ function saveRedeemedBlessings(redemptions: BlessingRedemption[]): void {
 export function isBlessingRedeemed(blessingId: string): boolean {
   const normalizedId = normalizeCode(blessingId);
   const redeemed = getRedeemedBlessings();
-  return redeemed.some(r => normalizeCode(r.blessingId) === normalizedId);
+  return redeemed.some((r) => normalizeCode(r.blessingId) === normalizedId);
 }
 
 /**
  * Redeem a blessing
  */
-export async function redeemBlessing(
-  blessing: Blessing
-): Promise<{ success: boolean; redemption?: BlessingRedemption; error?: string }> {
+export async function redeemBlessing(blessing: Blessing): Promise<{
+  success: boolean;
+  redemption?: BlessingRedemption;
+  error?: string;
+}> {
   // Verify the blessing
   const verification = await verifyBlessingObject(blessing);
   if (!verification.valid) {
@@ -233,17 +238,21 @@ export async function redeemBlessing(
 
   // Check if already redeemed
   if (isBlessingRedeemed(blessing.blessingId)) {
-    return { success: false, error: 'This blessing has already been redeemed' };
+    return { success: false, error: "This blessing has already been redeemed" };
   }
 
   // Check if from bonded mentor (optional - could allow any valid blessing)
   const bonds = getActiveKidBondMarks();
-  const mentorBond = bonds.find(bond => bond.mentorPubKey === blessing.issuedBy);
+  const mentorBond = bonds.find(
+    (bond) => bond.mentorPubKey === blessing.issuedBy,
+  );
 
   // Record the redemption
   const redemption: BlessingRedemption = {
     blessingId: blessing.blessingId,
-    mentorHubId: mentorBond?.mentorHubId || `unbonded-${blessing.issuedBy.slice(0, 16)}`,
+    mentorHubId: mentorBond
+      ? asHubId(mentorBond.mentorHubId)
+      : asHubId(`unbonded-${blessing.issuedBy.slice(0, 16)}`),
     redeemedAt: Date.now(),
     type: blessing.type,
   };
@@ -265,8 +274,10 @@ export function getAllRedeemedBlessings(): BlessingRedemption[] {
 /**
  * Get redeemed blessings from a specific mentor
  */
-export function getRedeemedBlessingsFromMentor(mentorHubId: string): BlessingRedemption[] {
-  return getRedeemedBlessings().filter(r => r.mentorHubId === mentorHubId);
+export function getRedeemedBlessingsFromMentor(
+  mentorHubId: string,
+): BlessingRedemption[] {
+  return getRedeemedBlessings().filter((r) => r.mentorHubId === mentorHubId);
 }
 
 /**
@@ -318,7 +329,13 @@ export function serializeBlessing(blessing: Blessing): string {
 export function deserializeBlessing(data: string): Blessing | null {
   try {
     const parsed = JSON.parse(data);
-    if (!parsed.blessingId || !parsed.type || !parsed.signature || !parsed.issuedBy || !parsed.forgedAt) {
+    if (
+      !parsed.blessingId ||
+      !parsed.type ||
+      !parsed.signature ||
+      !parsed.issuedBy ||
+      !parsed.forgedAt
+    ) {
       return null;
     }
     return parsed as Blessing;
@@ -343,6 +360,6 @@ export function getBlessingCodeForDisplay(blessing: Blessing): string {
  * Clear all redeemed blessings (for testing/reset)
  */
 export function clearRedeemedBlessings(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   localStorage.removeItem(REDEEMED_BLESSINGS_KEY);
 }

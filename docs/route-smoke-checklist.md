@@ -9,6 +9,9 @@ Use this quick checklist after landing/compass updates.
 ## Route checks
 - [ ] Open `/` and confirm the page renders without console/runtime errors.
 - [ ] In landing nav, click `Compass` and confirm it scrolls to `#compass`.
+- [ ] In landing hero/cards, click `Open MetaPet App` and confirm navigation to `/pet`.
+- [ ] In landing hero/cards, click `Open Teacher Hub` and confirm navigation to `/veil`.
+- [ ] On `/veil`, click `Return to MetaPet App` and confirm navigation to `/pet`.
 - [ ] In the Compass section on `/`, click `Open Compass` and confirm navigation to `/compass`.
 - [ ] In the Compass section on `/`, click `Play Space Jewbles` and confirm navigation to `/space-jewbles`.
 
@@ -25,5 +28,5 @@ Use this quick checklist after landing/compass updates.
 - [ ] Confirm start-screen copy loads with no overflow/broken layout.
 
 ## Pass criteria
-- [ ] No 404s across `/`, `/compass`, `/space-jewbles`.
+- [ ] No 404s across `/`, `/pet`, `/veil`, `/compass`, `/space-jewbles`.
 - [ ] No broken CTA links in tested paths.

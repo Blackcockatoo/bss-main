@@ -12,6 +12,61 @@
  */
 
 // ============================================================================
+// Branded Primitive Types
+// ============================================================================
+
+/** Opaque hub identifier derived from a teacher's public key. */
+export type HubId = string & { readonly __brand: "HubId" };
+
+/** Opaque bond identifier — unique per teacher/kid pair. */
+export type BondId = string & { readonly __brand: "BondId" };
+
+/** A validated, formatted blessing claim code (e.g. "ABCD-EFGH-12"). */
+export type ClaimCode = string & { readonly __brand: "ClaimCode" };
+
+/** Safe cast helpers — use only at validated boundaries (API layer, claim-code.ts). */
+export function asHubId(raw: string): HubId {
+  return raw as HubId;
+}
+export function asBondId(raw: string): BondId {
+  return raw as BondId;
+}
+export function asClaimCode(raw: string): ClaimCode {
+  return raw as ClaimCode;
+}
+
+// ============================================================================
+// Role System
+// ============================================================================
+
+/** Who is currently operating the UI. */
+export type VeilRole = "teacher" | "kid";
+
+/**
+ * Typed context object flowing through role-guarded surfaces.
+ * Passed via React Context or derived from role-state helpers.
+ */
+export interface RoleContext {
+  role: VeilRole;
+  /** Teacher's hub identifier, present when role === 'teacher'. */
+  hubId?: HubId;
+  /** Hash of the kid's pet crest, present when role === 'kid'. */
+  petCrestHash?: string;
+}
+
+// ============================================================================
+// Validated Pairing Invite (discriminated union — post-verification)
+// ============================================================================
+
+/**
+ * Result of verifying a raw PairingInvite payload.
+ * Always check `valid` before accessing `invite`.
+ */
+export type ValidatedPairingInviteResult =
+  | { valid: true; invite: PairingInvite }
+  | { valid: false; reason: "expired" | "bad-signature" | "malformed" };
+
+// ============================================================================
 // Teacher Vault (Cryptographic Identity)
 // ============================================================================
 
@@ -19,7 +74,7 @@ export interface TeacherVault {
   /** Exported public key (SPKI format, base64) */
   publicKey: string;
   /** Hub identifier derived from public key */
-  hubId: string;
+  hubId: HubId;
   /** Seed for mentor pet appearance (SHA-256 of public key) */
   mentorPetSeed: string;
   /** Creation timestamp */
@@ -39,7 +94,7 @@ export interface TeacherVaultStore {
 }
 
 export interface VaultBackupMetadata {
-  version: 'veil-vault-backup-v1';
+  version: "veil-vault-backup-v1";
   createdAt: number;
   keyId: string;
 }
@@ -49,10 +104,10 @@ export interface VaultBackupPayload {
   kdf: {
     salt: string;
     iterations: number;
-    hash: 'SHA-256';
+    hash: "SHA-256";
   };
   encryption: {
-    algorithm: 'AES-GCM';
+    algorithm: "AES-GCM";
     iv: string;
     ciphertext: string;
   };
@@ -63,9 +118,9 @@ export interface VaultBackupPayload {
 // ============================================================================
 
 export interface PairingInvite {
-  type: 'veil-pair-invite';
+  type: "veil-pair-invite";
   /** Teacher's hub identifier */
-  hubId: string;
+  hubId: HubId;
   /** Teacher's public key (for verification) */
   teacherPubKey: string;
   /** Expiration timestamp (15 minutes from creation) */
@@ -75,7 +130,7 @@ export interface PairingInvite {
 }
 
 export interface PairingResponse {
-  type: 'veil-pair-response';
+  type: "veil-pair-response";
   /** Hash of kid's pet crest (identity) */
   petCrestHash: string;
   /** Optional alias chosen by kid */
@@ -87,15 +142,15 @@ export interface PairingResponse {
   /** Kid device public key (SPKI base64) */
   kidPubKey?: string;
   /** Signature format identifier */
-  signatureScheme?: 'ecdsa-p256-sha256-v1';
+  signatureScheme?: "ecdsa-p256-sha256-v1";
   /** Signature by kid's device key */
   signature: string;
 }
 
 export type ConsentFlag =
-  | 'viewWellbeing'    // Teacher can see wellbeing bands
-  | 'receiveBlessings' // Kid can receive teacher blessings
-  | 'receiveKeys';     // Kid can receive evolution keys (future)
+  | "viewWellbeing" // Teacher can see wellbeing bands
+  | "receiveBlessings" // Kid can receive teacher blessings
+  | "receiveKeys"; // Kid can receive evolution keys (future)
 
 // ============================================================================
 // Constellation (Bonded Crests)
@@ -120,7 +175,7 @@ export interface BondedCrest {
   lastSyncAt: number;
 }
 
-export type LastSeenBand = 'today' | 'thisWeek' | 'thisMonth' | 'dormant';
+export type LastSeenBand = "today" | "thisWeek" | "thisMonth" | "dormant";
 export type WellbeingBand = 0 | 1 | 2; // Low / Med / High
 
 export interface CareCapsuleIndicators {
@@ -131,7 +186,7 @@ export interface CareCapsuleIndicators {
 }
 
 export interface CareCapsuleSyncState {
-  status: 'synced' | 'stale' | 'pending' | 'error';
+  status: "synced" | "stale" | "pending" | "error";
   weekOf?: string;
   syncedAt?: number;
   receivedAt?: number;
@@ -143,7 +198,7 @@ export interface CareCapsuleSyncState {
  * Shared event contract used by Care Capsule producers and Constellation consumers.
  */
 export interface CareCapsuleSubmissionEvent {
-  type: 'veil-care-capsule-submission';
+  type: "veil-care-capsule-submission";
   submittedAt: number;
   capsule: CareCapsule;
 }
@@ -167,13 +222,13 @@ export interface Blessing {
   signature: string;
 }
 
-export type BlessingType = 'sticker' | 'aura' | 'accessory';
+export type BlessingType = "sticker" | "aura" | "accessory";
 
 export interface BlessingMetadata {
   /** Display name for the blessing */
   name?: string;
   /** Rarity indicator */
-  rarity?: 'common' | 'uncommon' | 'rare' | 'epic';
+  rarity?: "common" | "uncommon" | "rare" | "epic";
   /** Flavor text */
   flavorText?: string;
   /** Specific cosmetic ID to unlock (optional) */
@@ -184,7 +239,7 @@ export interface BlessingRedemption {
   /** The blessing code redeemed */
   blessingId: string;
   /** Which mentor this came from */
-  mentorHubId: string;
+  mentorHubId: HubId;
   /** When redeemed */
   redeemedAt: number;
   /** What was unlocked */
@@ -215,9 +270,9 @@ export interface CareCapsule {
   /** Kid device public key (SPKI base64) */
   kidPubKey?: string;
   /** Signature format identifier */
-  signatureScheme?: 'ecdsa-p256-sha256-v1';
+  signatureScheme?: "ecdsa-p256-sha256-v1";
   /** Verification status for migration/legacy handling */
-  verificationStatus?: 'verifiable' | 'legacy-unverifiable';
+  verificationStatus?: "verifiable" | "legacy-unverifiable";
   /** Signature by pet's device key */
   signature: string;
 }
@@ -273,11 +328,11 @@ export type MentorTier = 0 | 1 | 2 | 3 | 4;
 
 /** XP thresholds for each tier */
 export const MENTOR_TIER_THRESHOLDS: Record<MentorTier, number> = {
-  0: 0,    // Base
-  1: 50,   // Tail grows
-  2: 150,  // Aura shimmer
-  3: 350,  // Crown appears
-  4: 700,  // Forge token unlocked
+  0: 0, // Base
+  1: 50, // Tail grows
+  2: 150, // Aura shimmer
+  3: 350, // Crown appears
+  4: 700, // Forge token unlocked
 };
 
 /** XP rewards for actions */
@@ -300,10 +355,10 @@ export interface ForgedBlessingRecord {
 // ============================================================================
 
 export const VEIL_STORAGE_KEYS = {
-  TEACHER_VAULT: 'veil-teacher-vault',
-  PRIVATE_KEY: 'veil-teacher-private-key',
-  MENTOR_PET: 'veil-mentor-pet',
-  BOND_MARKS: 'veil-bond-marks',
+  TEACHER_VAULT: "veil-teacher-vault",
+  PRIVATE_KEY: "veil-teacher-private-key",
+  MENTOR_PET: "veil-mentor-pet",
+  BOND_MARKS: "veil-bond-marks",
 } as const;
 
 // ============================================================================

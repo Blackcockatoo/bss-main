@@ -1,5 +1,5 @@
-import PetPage from "./pet/page";
+import { HomePageClient } from "./HomePageClient";
 
 export default function HomePage() {
-  return <PetPage />;
+  return <HomePageClient />;
 }

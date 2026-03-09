@@ -3,6 +3,8 @@ import type { Vitals } from "@/lib/store";
 const SHARED_PET_STATE_KEY = "metapet-shared-pet-state-v1";
 const LEGACY_SHARED_PET_STATE_KEYS = ["metapet-shared-pet-state"] as const;
 const GUARDIAN_STATE_KEY = "auralia_guardian_state";
+export const SHARED_PET_STATE_UPDATED_EVENT =
+  "metapet:shared-pet-state-updated";
 
 export interface SharedPetIdentity {
   petId: string;
@@ -254,6 +256,11 @@ function writeSharedPetState(value: SharedPetState): void {
 
   try {
     window.localStorage.setItem(SHARED_PET_STATE_KEY, JSON.stringify(value));
+    window.dispatchEvent(
+      new CustomEvent<SharedPetState>(SHARED_PET_STATE_UPDATED_EVENT, {
+        detail: value,
+      }),
+    );
   } catch {
     // no-op; app should continue even if persistence is blocked
   }

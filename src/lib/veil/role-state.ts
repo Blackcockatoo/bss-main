@@ -1,4 +1,6 @@
-export type VeilRole = "teacher" | "kid";
+// VeilRole is defined in types.ts — import from there to keep a single source of truth.
+import type { VeilRole } from "./types";
+export type { VeilRole };
 
 export const VEIL_ROLE_STORAGE_KEY = "veil-role";
 export const VEIL_ROLE_QUERY_KEY = "as";
@@ -136,7 +138,16 @@ export function resolveVeilRole({
   storedRole,
 }: ResolveVeilRoleInput): ResolveVeilRoleResult {
   const currentRole = queryRole ?? storedRole ?? requiredRole;
+
+  // Persist rules:
+  // - If a query param role is present, always persist it. A query param is an
+  //   explicit, intentional role-switch signal (e.g. clicking "Switch to Kid").
+  //   Persisting it makes the next visit remember the role without a query param.
+  // - If no query param, but no stored role either, persist the required role as
+  //   the initial default so the page "remembers" where you are.
+  // - If no query param and a stored role already exists, leave storage untouched.
   const shouldPersistRole = queryRole ?? (storedRole ? null : requiredRole);
+
   return {
     currentRole,
     shouldPersistRole,

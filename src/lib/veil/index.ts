@@ -19,6 +19,15 @@
 // ============================================================================
 
 export type {
+  // Branded primitives
+  HubId,
+  BondId,
+  ClaimCode,
+  // Role system
+  VeilRole,
+  RoleContext,
+  // Validated pairing
+  ValidatedPairingInviteResult,
   // Teacher Vault
   TeacherVault,
   TeacherVaultStore,
@@ -52,6 +61,9 @@ export type {
 } from "./types";
 
 export {
+  asHubId,
+  asBondId,
+  asClaimCode,
   VEIL_STORAGE_KEYS,
   PAIRING_EXPIRY_MS,
   BOND_DORMANT_THRESHOLD_MS,
@@ -64,7 +76,6 @@ export {
 // ============================================================================
 
 export type {
-  VeilRole,
   ResolveVeilRoleInput,
   ResolveVeilRoleResult,
 } from "./role-state";

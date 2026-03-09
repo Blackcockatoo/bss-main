@@ -14,3 +14,6 @@ Contracts and server route behavior after core state is stable.
 ## Session Notes
 
 - Keep API cleanup after shared core state merge to avoid rework.
+- Hardened all four blessings API routes: claim dedup + forgedAt timestamp guard (IO-DATA-001 partial), claims list requires hub Bearer token and no longer exposes raw codes, redeem uses correct HTTP status codes (400/404/409/410), revoke requires hub Bearer token and uses correct status codes (400/404/409/410).
+- Hardened blessing-claim-store: `MAX_STORE_SIZE=2000` cap, bounded `getUniqueCode` with `MAX_CODE_GEN_ATTEMPTS=32`, cleanup-on-read, and `hasActiveBlessingClaim` dedup helper.
+- IO-DATA-001 needs end-to-end test coverage added (IO-DATA-004) before marking complete.

@@ -9,8 +9,8 @@ Inside systems first: renderer reliability, state model, persistence, role/sessi
 - [x] IO-CORE-003 | high | depends: IO-CORE-002 | done-when: teacher/kid role switching is controlled by one shared role state contract.
 - [x] IO-CORE-004 | medium | depends: IO-CORE-002 | done-when: local persistence migration keeps existing user data without resets or duplication.
 - [x] IO-CORE-005 | medium | depends: IO-CORE-001 | done-when: 3D/audio unsupported devices show graceful fallback + retry path.
-- [ ] IO-CORE-006 | medium | depends: none | done-when: `/veil` route group has stable error boundary and loading states.
-- [ ] IO-CORE-007 | medium | depends: IO-CORE-002 | done-when: shared type definitions exist for bond ids, claim tokens, and role context.
+- [x] IO-CORE-006 | medium | depends: none | done-when: `/veil` route group has stable error boundary and loading states.
+- [x] IO-CORE-007 | medium | depends: IO-CORE-002 | done-when: shared type definitions exist for bond ids, claim tokens, and role context.
 - [ ] IO-CORE-008 | low | depends: IO-CORE-002 | done-when: architecture note explains state flow from core store to teacher/kid UI.
 
 ## Session Notes
@@ -24,3 +24,5 @@ Inside systems first: renderer reliability, state model, persistence, role/sessi
 - Completed IO-CORE-004 by adding a shared migration runner (`src/lib/core-persistence-migration.ts`) and idempotent local-storage migration hooks for guardian state, shared pet state, and veil role state, including normalization/deduplication safeguards and focused tests.
 - Verified IO-CORE-004 with targeted migration suites (`src/auralia/persistence.test.ts`, `src/lib/shared-pet-state.test.ts`, `src/lib/veil/role-state.test.ts`, `src/lib/core-persistence-migration.test.ts`) plus full TypeScript no-emit check.
 - Completed IO-CORE-005 by decoupling audio/3D readiness in `src/components/veil/DigitalDNAHub.tsx`, adding explicit audio fallback with Retry + Switch-to-Visual path, and extending smoke coverage to forced audio failure in `scripts/smoke-veil-digital-dna.mjs`.
+- Completed IO-CORE-006 by adding `src/app/veil/error.tsx` (Veil-branded error boundary with safe message sanitization and Try Again / Student App actions), updating `src/app/veil/loading.tsx` to match the cyan/slate Veil theme, and improving `src/app/veil/kid/error.tsx` to sanitize raw JS error messages before rendering to kids.
+- Completed IO-CORE-007 by adding branded opaque types (`HubId`, `BondId`, `ClaimCode`), a `RoleContext` interface, a `ValidatedPairingInviteResult` discriminated union, and safe cast helpers (`asHubId`, `asBondId`, `asClaimCode`) to `src/lib/veil/types.ts`. Moved `VeilRole` from `role-state.ts` to `types.ts` as the single canonical home. Updated `TeacherVault`, `PairingInvite`, and `BlessingRedemption` to use `HubId`. Fixed a `resolveVeilRole` bug where a mismatched `queryRole` was incorrectly persisted to storage.

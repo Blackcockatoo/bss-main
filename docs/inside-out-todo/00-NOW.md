@@ -1,20 +1,21 @@
 # 00 - NOW
 
-Last updated: 2026-03-04
+Last updated: 2026-03-07
 
 Keep this file to max 3 active items.
 
 ## Active Focus
 
-- [ ] IO-CORE-006 | medium | depends: none | done-when: `/veil` route group has stable error boundary and loading states.
-- [ ] IO-CORE-007 | medium | depends: IO-CORE-002 | done-when: shared type definitions exist for bond ids, claim tokens, and role context.
 - [ ] IO-DATA-001 | high | depends: IO-CORE-002 | done-when: blessings claim/redeem/revoke passes end-to-end checks with valid and invalid inputs.
+- [ ] IO-DATA-004 | medium | depends: IO-DATA-001 | done-when: test coverage exists for critical blessings and transport route logic.
+- [ ] IO-INT-003 | high | depends: IO-CORE-002 | done-when: teacher hub and student app operate on one coherent pet-state model.
 
 ## Parking Lot (next up)
 
 - IO-CORE-008
 - IO-DATA-002
-- IO-INT-003
+- IO-DATA-003
+- IO-INT-004
 
 ## Session Notes
 
@@ -27,3 +28,5 @@ Keep this file to max 3 active items.
 - Started IO-CORE-004 by adding a shared core migration runner and local-storage migration hooks for guardian state, shared pet state, and veil role state.
 - Finished IO-CORE-004 by normalizing and migrating legacy local-storage keys into canonical contracts without duplicating entries, then wiring startup migration into `/pet` and `/veil` plus focused migration tests.
 - Completed IO-CORE-005 by adding explicit audio failure fallback/retry controls in veil Digital DNA (including forced `?forceAudioError=1` path) while preserving existing 3D fallback + switch-to-2D recovery.
+- Completed IO-CORE-006: added `/veil/error.tsx` with branded Veil error boundary, themed `/veil/loading.tsx` to match cyan/slate Veil palette, and improved `/veil/kid/error.tsx` to sanitize raw JS error messages before showing to kids.
+- Completed IO-CORE-007: added `HubId`, `BondId`, `ClaimCode` branded types, `RoleContext`, `ValidatedPairingInviteResult`, and cast helpers to `types.ts`. Moved `VeilRole` canonical definition to `types.ts`. Fixed `resolveVeilRole` role-persistence bug. Hardened all four blessings API routes (claim dedup + timestamp guard, claims list auth + code redaction, redeem correct HTTP status codes, revoke auth + correct status codes). Hardened `blessing-claim-store` with `MAX_STORE_SIZE` cap, bounded `getUniqueCode` retry loop, and cleanup-on-read.

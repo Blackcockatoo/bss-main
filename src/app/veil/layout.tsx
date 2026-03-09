@@ -1,8 +1,8 @@
+import { LegalNotice } from "@/components/LegalNotice";
+import { VeilNav } from "@/components/VeilNav";
+import { BRAND_UI, getCopyrightNotice } from "@/lib/brand";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { VeilNav } from "@/components/VeilNav";
-import { LegalNotice } from "@/components/LegalNotice";
-import { BRAND_UI, getCopyrightNotice } from '@/lib/brand';
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -24,6 +24,14 @@ export default function VeilLayout({
       <main className="flex-1">{children}</main>
       <footer className="border-t border-slate-800/70 bg-slate-950/70 px-6 py-4 text-center">
         <div className="mx-auto flex max-w-3xl flex-col gap-2">
+          <div className="flex justify-center">
+            <Link
+              href="/pet"
+              className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-3 py-1 text-[11px] font-medium text-cyan-200 transition hover:bg-cyan-500/20"
+            >
+              Return to MetaPet App
+            </Link>
+          </div>
           <LegalNotice className="text-[11px] text-slate-400" />
           <div className="flex items-center justify-center gap-3 text-[11px]">
             <Link
@@ -32,14 +40,18 @@ export default function VeilLayout({
             >
               Legal details
             </Link>
-            <span className="text-slate-700" aria-hidden="true">•</span>
+            <span className="text-slate-700" aria-hidden="true">
+              •
+            </span>
             <Link
               href="/veil/routes"
               className="text-slate-500 transition hover:text-slate-200"
             >
               Route map
             </Link>
-            <span className="text-slate-700" aria-hidden="true">•</span>
+            <span className="text-slate-700" aria-hidden="true">
+              •
+            </span>
             <Link
               href="/pet"
               className="text-slate-500 transition hover:text-slate-200"

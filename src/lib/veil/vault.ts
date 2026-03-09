@@ -5,8 +5,13 @@
  * Keys are stored locally and optionally protected by passcode.
  */
 
-import type { TeacherVault, TeacherVaultStore, VaultBackupPayload, VaultBackupMetadata } from './types';
-import { VEIL_STORAGE_KEYS } from './types';
+import type {
+  TeacherVault,
+  TeacherVaultStore,
+  VaultBackupMetadata,
+  VaultBackupPayload,
+} from "./types";
+import { VEIL_STORAGE_KEYS, asHubId } from "./types";
 
 // ============================================================================
 // Utility Functions
@@ -14,7 +19,7 @@ import { VEIL_STORAGE_KEYS } from './types';
 
 function bufferToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
-  let binary = '';
+  let binary = "";
   for (let i = 0; i < bytes.length; i++) {
     binary += String.fromCharCode(bytes[i]);
   }
@@ -32,24 +37,27 @@ function base64ToBuffer(base64: string): ArrayBuffer {
 
 function bufferToHex(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
-  let hex = '';
+  let hex = "";
   for (let i = 0; i < bytes.length; i++) {
-    hex += bytes[i].toString(16).padStart(2, '0');
+    hex += bytes[i].toString(16).padStart(2, "0");
   }
   return hex;
 }
 
 async function sha256(data: string): Promise<string> {
   const encoder = new TextEncoder();
-  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+  const hashBuffer = await crypto.subtle.digest(
+    "SHA-256",
+    encoder.encode(data),
+  );
   return bufferToHex(hashBuffer);
 }
 
 function generateId(length: number): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
   const values = new Uint8Array(length);
   crypto.getRandomValues(values);
-  return Array.from(values, v => chars[v % chars.length]).join('');
+  return Array.from(values, (v) => chars[v % chars.length]).join("");
 }
 
 // ============================================================================
@@ -57,7 +65,7 @@ function generateId(length: number): string {
 // ============================================================================
 
 function getVaultStore(): TeacherVaultStore {
-  if (typeof window === 'undefined') {
+  if (typeof window === "undefined") {
     return { vault: null, privateKeyEncrypted: null, isEncrypted: false };
   }
 
@@ -67,19 +75,22 @@ function getVaultStore(): TeacherVaultStore {
       return JSON.parse(stored);
     }
   } catch {
-    console.warn('[Veil] Failed to load vault store');
+    console.warn("[Veil] Failed to load vault store");
   }
 
   return { vault: null, privateKeyEncrypted: null, isEncrypted: false };
 }
 
 function saveVaultStore(store: TeacherVaultStore): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
 
   try {
-    localStorage.setItem(VEIL_STORAGE_KEYS.TEACHER_VAULT, JSON.stringify(store));
+    localStorage.setItem(
+      VEIL_STORAGE_KEYS.TEACHER_VAULT,
+      JSON.stringify(store),
+    );
   } catch (error) {
-    console.warn('[Veil] Failed to save vault store:', error);
+    console.warn("[Veil] Failed to save vault store:", error);
   }
 }
 
@@ -87,57 +98,68 @@ function saveVaultStore(store: TeacherVaultStore): void {
 // Key Derivation for Passcode Protection
 // ============================================================================
 
-async function deriveKeyFromPasscode(passcode: string, salt: Uint8Array<ArrayBuffer>): Promise<CryptoKey> {
+async function deriveKeyFromPasscode(
+  passcode: string,
+  salt: Uint8Array<ArrayBuffer>,
+): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     encoder.encode(passcode),
-    'PBKDF2',
+    "PBKDF2",
     false,
-    ['deriveKey']
+    ["deriveKey"],
   );
 
   return await crypto.subtle.deriveKey(
     {
-      name: 'PBKDF2',
+      name: "PBKDF2",
       salt,
       iterations: 100000,
-      hash: 'SHA-256',
+      hash: "SHA-256",
     },
     keyMaterial,
-    { name: 'AES-GCM', length: 256 },
+    { name: "AES-GCM", length: 256 },
     false,
-    ['encrypt', 'decrypt']
+    ["encrypt", "decrypt"],
   );
 }
 
-async function deriveBackupKey(passphrase: string, salt: Uint8Array<ArrayBuffer>, iterations: number): Promise<CryptoKey> {
+async function deriveBackupKey(
+  passphrase: string,
+  salt: Uint8Array<ArrayBuffer>,
+  iterations: number,
+): Promise<CryptoKey> {
   const encoder = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
-    'raw',
+    "raw",
     encoder.encode(passphrase),
-    'PBKDF2',
+    "PBKDF2",
     false,
-    ['deriveKey']
+    ["deriveKey"],
   );
 
   return await crypto.subtle.deriveKey(
     {
-      name: 'PBKDF2',
+      name: "PBKDF2",
       salt,
       iterations,
-      hash: 'SHA-256',
+      hash: "SHA-256",
     },
     keyMaterial,
-    { name: 'AES-GCM', length: 256 },
+    { name: "AES-GCM", length: 256 },
     false,
-    ['encrypt', 'decrypt']
+    ["encrypt", "decrypt"],
   );
 }
 
-function toBackupMetadataAAD(metadata: VaultBackupMetadata): Uint8Array<ArrayBuffer> {
+function toBackupMetadataAAD(
+  metadata: VaultBackupMetadata,
+): Uint8Array<ArrayBuffer> {
   const encoder = new TextEncoder();
-  return encoder.encode(`${metadata.version}:${metadata.createdAt}:${metadata.keyId}`);
+  return encoder.encode(
+    `${metadata.version}:${metadata.createdAt}:${metadata.keyId}`,
+  );
 }
 
 function normalizeVault(vault: TeacherVault): TeacherVault {
@@ -153,20 +175,25 @@ function keyIdFromPublicKey(publicKeyB64: string): Promise<string> {
   return sha256(publicKeyB64);
 }
 
-async function encryptPrivateKey(privateKeyB64: string, passcode: string): Promise<{ encrypted: string; salt: string }> {
+async function encryptPrivateKey(
+  privateKeyB64: string,
+  passcode: string,
+): Promise<{ encrypted: string; salt: string }> {
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const key = await deriveKeyFromPasscode(passcode, salt);
 
   const encoder = new TextEncoder();
   const ciphertext = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
+    { name: "AES-GCM", iv },
     key,
-    encoder.encode(privateKeyB64)
+    encoder.encode(privateKeyB64),
   );
 
   // Combine IV + ciphertext
-  const combined = new Uint8Array(iv.length + new Uint8Array(ciphertext).length);
+  const combined = new Uint8Array(
+    iv.length + new Uint8Array(ciphertext).length,
+  );
   combined.set(iv);
   combined.set(new Uint8Array(ciphertext), iv.length);
 
@@ -176,7 +203,11 @@ async function encryptPrivateKey(privateKeyB64: string, passcode: string): Promi
   };
 }
 
-async function decryptPrivateKey(encryptedB64: string, salt: string, passcode: string): Promise<string> {
+async function decryptPrivateKey(
+  encryptedB64: string,
+  salt: string,
+  passcode: string,
+): Promise<string> {
   const saltBuffer = new Uint8Array(base64ToBuffer(salt));
   const combined = new Uint8Array(base64ToBuffer(encryptedB64));
 
@@ -186,9 +217,9 @@ async function decryptPrivateKey(encryptedB64: string, salt: string, passcode: s
   const key = await deriveKeyFromPasscode(passcode, saltBuffer);
 
   const plaintext = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
+    { name: "AES-GCM", iv },
     key,
-    ciphertext
+    ciphertext,
   );
 
   return new TextDecoder().decode(plaintext);
@@ -228,20 +259,26 @@ export function getVault(): TeacherVault | null {
 export async function createVault(passcode?: string): Promise<TeacherVault> {
   // Generate ECDSA P-256 keypair
   const keyPair = await crypto.subtle.generateKey(
-    { name: 'ECDSA', namedCurve: 'P-256' },
+    { name: "ECDSA", namedCurve: "P-256" },
     true,
-    ['sign', 'verify']
+    ["sign", "verify"],
   );
 
   // Export keys
-  const publicKeyExport = await crypto.subtle.exportKey('spki', keyPair.publicKey);
-  const privateKeyExport = await crypto.subtle.exportKey('pkcs8', keyPair.privateKey);
+  const publicKeyExport = await crypto.subtle.exportKey(
+    "spki",
+    keyPair.publicKey,
+  );
+  const privateKeyExport = await crypto.subtle.exportKey(
+    "pkcs8",
+    keyPair.privateKey,
+  );
 
   const publicKeyB64 = bufferToBase64(publicKeyExport);
   const privateKeyB64 = bufferToBase64(privateKeyExport);
 
   // Derive hub ID and mentor pet seed from public key
-  const hubId = `hub-${generateId(12)}`;
+  const hubId = asHubId(`hub-${generateId(12)}`);
   const mentorPetSeed = await sha256(publicKeyB64);
 
   const vault: TeacherVault = {
@@ -260,7 +297,10 @@ export async function createVault(passcode?: string): Promise<TeacherVault> {
   // Handle passcode protection
   if (passcode) {
     const passcodeHash = await sha256(passcode + hubId);
-    const { encrypted, salt } = await encryptPrivateKey(privateKeyB64, passcode);
+    const { encrypted, salt } = await encryptPrivateKey(
+      privateKeyB64,
+      passcode,
+    );
 
     vault.passcodeHash = passcodeHash;
     vault.passcodeSalt = salt;
@@ -300,7 +340,9 @@ export async function unlockVault(passcode: string): Promise<boolean> {
 /**
  * Get the private key for signing (requires passcode if encrypted)
  */
-export async function getPrivateKey(passcode?: string): Promise<CryptoKey | null> {
+export async function getPrivateKey(
+  passcode?: string,
+): Promise<CryptoKey | null> {
   const store = getVaultStore();
 
   if (!store.vault || !store.privateKeyEncrypted) {
@@ -311,19 +353,19 @@ export async function getPrivateKey(passcode?: string): Promise<CryptoKey | null
 
   if (store.isEncrypted) {
     if (!passcode || !store.vault.passcodeSalt) {
-      throw new Error('Passcode required to unlock vault');
+      throw new Error("Passcode required to unlock vault");
     }
 
     // Verify passcode first
     const isValid = await unlockVault(passcode);
     if (!isValid) {
-      throw new Error('Invalid passcode');
+      throw new Error("Invalid passcode");
     }
 
     privateKeyB64 = await decryptPrivateKey(
       store.privateKeyEncrypted,
       store.vault.passcodeSalt,
-      passcode
+      passcode,
     );
   } else {
     privateKeyB64 = store.privateKeyEncrypted;
@@ -332,43 +374,48 @@ export async function getPrivateKey(passcode?: string): Promise<CryptoKey | null
   // Import private key
   const privateKeyBuffer = base64ToBuffer(privateKeyB64);
   return await crypto.subtle.importKey(
-    'pkcs8',
+    "pkcs8",
     privateKeyBuffer,
-    { name: 'ECDSA', namedCurve: 'P-256' },
+    { name: "ECDSA", namedCurve: "P-256" },
     false,
-    ['sign']
+    ["sign"],
   );
 }
 
 /**
  * Import public key for verification
  */
-export async function importPublicKey(publicKeyB64: string): Promise<CryptoKey> {
+export async function importPublicKey(
+  publicKeyB64: string,
+): Promise<CryptoKey> {
   const publicKeyBuffer = base64ToBuffer(publicKeyB64);
   return await crypto.subtle.importKey(
-    'spki',
+    "spki",
     publicKeyBuffer,
-    { name: 'ECDSA', namedCurve: 'P-256' },
+    { name: "ECDSA", namedCurve: "P-256" },
     true,
-    ['verify']
+    ["verify"],
   );
 }
 
 /**
  * Sign data with the teacher's private key
  */
-export async function signData(data: string, passcode?: string): Promise<string> {
+export async function signData(
+  data: string,
+  passcode?: string,
+): Promise<string> {
   const privateKey = await getPrivateKey(passcode);
 
   if (!privateKey) {
-    throw new Error('No private key available');
+    throw new Error("No private key available");
   }
 
   const encoder = new TextEncoder();
   const signature = await crypto.subtle.sign(
-    { name: 'ECDSA', hash: { name: 'SHA-256' } },
+    { name: "ECDSA", hash: { name: "SHA-256" } },
     privateKey,
-    encoder.encode(data)
+    encoder.encode(data),
   );
 
   return bufferToBase64(signature);
@@ -380,7 +427,7 @@ export async function signData(data: string, passcode?: string): Promise<string>
 export async function verifySignature(
   data: string,
   signatureB64: string,
-  publicKeyB64: string
+  publicKeyB64: string,
 ): Promise<boolean> {
   try {
     const publicKey = await importPublicKey(publicKeyB64);
@@ -388,13 +435,13 @@ export async function verifySignature(
     const signatureBuffer = base64ToBuffer(signatureB64);
 
     return await crypto.subtle.verify(
-      { name: 'ECDSA', hash: { name: 'SHA-256' } },
+      { name: "ECDSA", hash: { name: "SHA-256" } },
       publicKey,
       signatureBuffer,
-      encoder.encode(data)
+      encoder.encode(data),
     );
   } catch (error) {
-    console.error('[Veil] Signature verification failed:', error);
+    console.error("[Veil] Signature verification failed:", error);
     return false;
   }
 }
@@ -403,7 +450,7 @@ export async function verifySignature(
  * Delete the vault (destructive)
  */
 export function deleteVault(): void {
-  if (typeof window === 'undefined') return;
+  if (typeof window === "undefined") return;
   localStorage.removeItem(VEIL_STORAGE_KEYS.TEACHER_VAULT);
   localStorage.removeItem(VEIL_STORAGE_KEYS.MENTOR_PET);
 }
@@ -413,7 +460,7 @@ export function deleteVault(): void {
  */
 export async function changePasscode(
   currentPasscode: string | null,
-  newPasscode: string | null
+  newPasscode: string | null,
 ): Promise<boolean> {
   const store = getVaultStore();
 
@@ -437,7 +484,7 @@ export async function changePasscode(
     privateKeyB64 = await decryptPrivateKey(
       store.privateKeyEncrypted,
       store.vault.passcodeSalt,
-      currentPasscode
+      currentPasscode,
     );
   } else {
     privateKeyB64 = store.privateKeyEncrypted;
@@ -446,7 +493,10 @@ export async function changePasscode(
   // Re-encrypt with new passcode (or store plainly if no new passcode)
   if (newPasscode) {
     const passcodeHash = await sha256(newPasscode + store.vault.hubId);
-    const { encrypted, salt } = await encryptPrivateKey(privateKeyB64, newPasscode);
+    const { encrypted, salt } = await encryptPrivateKey(
+      privateKeyB64,
+      newPasscode,
+    );
 
     store.vault.passcodeHash = passcodeHash;
     store.vault.passcodeSalt = salt;
@@ -466,7 +516,10 @@ export async function changePasscode(
 /**
  * Export vault for backup (does not include private key)
  */
-export function exportVaultInfo(): { vault: TeacherVault; hubId: string } | null {
+export function exportVaultInfo(): {
+  vault: TeacherVault;
+  hubId: string;
+} | null {
   const store = getVaultStore();
   if (!store.vault) return null;
 
@@ -481,29 +534,29 @@ export function exportVaultInfo(): { vault: TeacherVault; hubId: string } | null
  */
 export async function exportVaultBackup(
   backupPassphrase: string,
-  vaultPasscode?: string
+  vaultPasscode?: string,
 ): Promise<VaultBackupPayload> {
   const store = getVaultStore();
 
   if (!store.vault || !store.privateKeyEncrypted) {
-    throw new Error('No vault available to back up');
+    throw new Error("No vault available to back up");
   }
 
   const trimmedPassphrase = backupPassphrase.trim();
   if (trimmedPassphrase.length < 8) {
-    throw new Error('Backup passphrase must be at least 8 characters');
+    throw new Error("Backup passphrase must be at least 8 characters");
   }
 
   const privateKey = await getPrivateKey(vaultPasscode);
   if (!privateKey) {
-    throw new Error('Unable to read private key for backup');
+    throw new Error("Unable to read private key for backup");
   }
 
-  const privateKeyExport = await crypto.subtle.exportKey('pkcs8', privateKey);
+  const privateKeyExport = await crypto.subtle.exportKey("pkcs8", privateKey);
   const privateKeyB64 = bufferToBase64(privateKeyExport);
 
   const metadata: VaultBackupMetadata = {
-    version: 'veil-vault-backup-v1',
+    version: "veil-vault-backup-v1",
     createdAt: Date.now(),
     keyId: await keyIdFromPublicKey(store.vault.publicKey),
   };
@@ -521,12 +574,12 @@ export async function exportVaultBackup(
 
   const ciphertext = await crypto.subtle.encrypt(
     {
-      name: 'AES-GCM',
+      name: "AES-GCM",
       iv,
       additionalData: aad,
     },
     key,
-    new TextEncoder().encode(payloadToEncrypt)
+    new TextEncoder().encode(payloadToEncrypt),
   );
 
   return {
@@ -534,10 +587,10 @@ export async function exportVaultBackup(
     kdf: {
       salt: bufferToBase64(salt.buffer),
       iterations,
-      hash: 'SHA-256',
+      hash: "SHA-256",
     },
     encryption: {
-      algorithm: 'AES-GCM',
+      algorithm: "AES-GCM",
       iv: bufferToBase64(iv.buffer),
       ciphertext: bufferToBase64(ciphertext),
     },
@@ -550,96 +603,117 @@ export async function exportVaultBackup(
 export async function restoreVaultBackup(
   backup: VaultBackupPayload | string,
   backupPassphrase: string,
-  options?: { allowOverwrite?: boolean }
+  options?: { allowOverwrite?: boolean },
 ): Promise<{ restored: TeacherVault; replacedExisting: boolean }> {
-  const parsed = typeof backup === 'string' ? JSON.parse(backup) as VaultBackupPayload : backup;
+  const parsed =
+    typeof backup === "string"
+      ? (JSON.parse(backup) as VaultBackupPayload)
+      : backup;
   const allowOverwrite = options?.allowOverwrite ?? false;
   const existing = getVaultStore();
 
   if (existing.vault && !allowOverwrite) {
-    throw new Error('Existing vault detected; explicit consent is required to replace keys');
+    throw new Error(
+      "Existing vault detected; explicit consent is required to replace keys",
+    );
   }
 
-  if (parsed.metadata?.version !== 'veil-vault-backup-v1') {
-    throw new Error('Unsupported backup format version');
+  if (parsed.metadata?.version !== "veil-vault-backup-v1") {
+    throw new Error("Unsupported backup format version");
   }
 
-  if (parsed.encryption?.algorithm !== 'AES-GCM' || parsed.kdf?.hash !== 'SHA-256') {
-    throw new Error('Unsupported backup cryptography parameters');
+  if (
+    parsed.encryption?.algorithm !== "AES-GCM" ||
+    parsed.kdf?.hash !== "SHA-256"
+  ) {
+    throw new Error("Unsupported backup cryptography parameters");
   }
 
   const salt = new Uint8Array(base64ToBuffer(parsed.kdf.salt));
   const iv = new Uint8Array(base64ToBuffer(parsed.encryption.iv));
   const aad = toBackupMetadataAAD(parsed.metadata);
-  const key = await deriveBackupKey(backupPassphrase.trim(), salt, parsed.kdf.iterations);
+  const key = await deriveBackupKey(
+    backupPassphrase.trim(),
+    salt,
+    parsed.kdf.iterations,
+  );
 
   let decryptedPayload: string;
   try {
     const plaintext = await crypto.subtle.decrypt(
       {
-        name: 'AES-GCM',
+        name: "AES-GCM",
         iv,
         additionalData: aad,
       },
       key,
-      base64ToBuffer(parsed.encryption.ciphertext)
+      base64ToBuffer(parsed.encryption.ciphertext),
     );
     decryptedPayload = new TextDecoder().decode(plaintext);
   } catch {
-    throw new Error('Backup integrity check failed or passphrase is incorrect');
+    throw new Error("Backup integrity check failed or passphrase is incorrect");
   }
 
-  const decoded = JSON.parse(decryptedPayload) as { vault: TeacherVault; privateKey: string };
+  const decoded = JSON.parse(decryptedPayload) as {
+    vault: TeacherVault;
+    privateKey: string;
+  };
   if (!decoded?.vault || !decoded.privateKey) {
-    throw new Error('Backup payload is missing required key material');
+    throw new Error("Backup payload is missing required key material");
   }
 
   const vault = normalizeVault(decoded.vault);
   const expectedKeyId = await keyIdFromPublicKey(vault.publicKey);
   if (expectedKeyId !== parsed.metadata.keyId) {
-    throw new Error('Backup metadata key identifier mismatch');
+    throw new Error("Backup metadata key identifier mismatch");
   }
 
   let privateKey: CryptoKey;
   try {
     privateKey = await crypto.subtle.importKey(
-      'pkcs8',
+      "pkcs8",
       base64ToBuffer(decoded.privateKey),
-      { name: 'ECDSA', namedCurve: 'P-256' },
+      { name: "ECDSA", namedCurve: "P-256" },
       true,
-      ['sign']
+      ["sign"],
     );
   } catch {
-    throw new Error('Backup private key is invalid');
+    throw new Error("Backup private key is invalid");
   }
 
-  const importedPublic = await crypto.subtle.exportKey('spki', await crypto.subtle.importKey(
-    'spki',
-    base64ToBuffer(vault.publicKey),
-    { name: 'ECDSA', namedCurve: 'P-256' },
-    true,
-    ['verify']
-  ));
+  const importedPublic = await crypto.subtle.exportKey(
+    "spki",
+    await crypto.subtle.importKey(
+      "spki",
+      base64ToBuffer(vault.publicKey),
+      { name: "ECDSA", namedCurve: "P-256" },
+      true,
+      ["verify"],
+    ),
+  );
 
-  const privateAsJwk = await crypto.subtle.exportKey('jwk', privateKey);
+  const privateAsJwk = await crypto.subtle.exportKey("jwk", privateKey);
   const derivedPublic = await crypto.subtle.importKey(
-    'jwk',
+    "jwk",
     {
-      kty: 'EC',
-      crv: 'P-256',
+      kty: "EC",
+      crv: "P-256",
       x: privateAsJwk.x,
       y: privateAsJwk.y,
       ext: true,
-      key_ops: ['verify'],
+      key_ops: ["verify"],
     },
-    { name: 'ECDSA', namedCurve: 'P-256' },
+    { name: "ECDSA", namedCurve: "P-256" },
     true,
-    ['verify']
+    ["verify"],
   );
-  const derivedPublicSpki = await crypto.subtle.exportKey('spki', derivedPublic);
+  const derivedPublicSpki = await crypto.subtle.exportKey(
+    "spki",
+    derivedPublic,
+  );
 
   if (bufferToBase64(importedPublic) !== bufferToBase64(derivedPublicSpki)) {
-    throw new Error('Backup private key does not match vault public key');
+    throw new Error("Backup private key does not match vault public key");
   }
 
   const replacedExisting = Boolean(existing.vault);
