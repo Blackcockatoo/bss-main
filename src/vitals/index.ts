@@ -1,5 +1,8 @@
 import type { EvolutionData } from '../evolution/index';
 import { checkEvolutionEligibility } from '../evolution/index';
+import type { Genome } from '../genome/types';
+import type { MindStats } from '../mind/index';
+import { tickMind, DEFAULT_MIND } from '../mind/index';
 
 export interface Vitals {
   hunger: number;
@@ -102,9 +105,9 @@ export function resetAfterDeath(vitals: Vitals): Vitals {
   };
 }
 
-export function applyDecay(vitals: Vitals): Vitals {
+export function applyDecay(vitals: Vitals, scale = 1): Vitals {
   // Decay rates are worse when sick
-  const sickMultiplier = vitals.isSick ? 1.5 : 1;
+  const sickMultiplier = (vitals.isSick ? 1.5 : 1) * scale;
 
   const newVitals = {
     ...vitals,
@@ -196,12 +199,38 @@ export function applyInteraction(vitals: Vitals, interaction: Interaction): Vita
 export interface TickResult {
   vitals: Vitals;
   evolution: EvolutionData;
+  mind: MindStats;
 }
 
-export function tick(vitals: Vitals, evolution: EvolutionData): TickResult {
-  const nextVitals = applyDecay(vitals);
+export interface TickContext {
+  mind?: MindStats;
+  genome?: Genome | null;
+  ownerKey?: string | null;
+  dnaSig?: string | null;
+}
+
+export function tick(
+  vitals: Vitals,
+  evolution: EvolutionData,
+  context: TickContext = {},
+): TickResult {
+  const sourceMind = context.mind ?? DEFAULT_MIND;
+  const inQuarantine = sourceMind.sovereignty.quarantine;
+
+  const nextVitals = inQuarantine
+    ? applyDecay({ ...vitals, sicknessSeverity: vitals.sicknessSeverity }, 0.5)
+    : applyDecay(vitals);
+
   const vitalsAvg = getVitalsAverage(nextVitals);
   const canEvolve = checkEvolutionEligibility(evolution, vitalsAvg);
+
+  const nextMind = tickMind(
+    sourceMind,
+    nextVitals,
+    context.genome ?? null,
+    context.ownerKey ?? null,
+    context.dnaSig ?? null,
+  );
 
   return {
     vitals: nextVitals,
@@ -209,22 +238,34 @@ export function tick(vitals: Vitals, evolution: EvolutionData): TickResult {
       ...evolution,
       canEvolve,
     },
+    mind: nextMind,
   };
 }
 
-export function multiTick(vitals: Vitals, evolution: EvolutionData, tickCount: number): TickResult {
+export function multiTick(
+  vitals: Vitals,
+  evolution: EvolutionData,
+  tickCount: number,
+  context: TickContext = {},
+): TickResult {
   let currentVitals = vitals;
   let currentEvolution = evolution;
+  let currentMind = context.mind ?? DEFAULT_MIND;
 
   for (let i = 0; i < tickCount; i++) {
-    const result = tick(currentVitals, currentEvolution);
+    const result = tick(currentVitals, currentEvolution, {
+      ...context,
+      mind: currentMind,
+    });
     currentVitals = result.vitals;
     currentEvolution = result.evolution;
+    currentMind = result.mind;
   }
 
   return {
     vitals: currentVitals,
     evolution: currentEvolution,
+    mind: currentMind,
   };
 }
 
