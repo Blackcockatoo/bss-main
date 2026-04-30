@@ -33,6 +33,16 @@ import {
   checkDeath,
   resetAfterDeath,
 } from '../vitals/index';
+import type { MindStats } from '../mind/index';
+import { DEFAULT_MIND } from '../mind/index';
+import { applyBondInteraction, registerExternalNudge } from '../mind/sovereignty';
+import {
+  ensureOwnerKey,
+  ensureDnaSig,
+  loadOwnerKey,
+  loadDnaSig,
+  reattest,
+} from '../mind/ownerKey';
 import {
   createDefaultRitualProgress,
   type RitualProgress,
@@ -81,6 +91,9 @@ export interface MetaPetState {
   lastReward: RewardPayload | null;
   petType: PetType;
   mirrorMode: MirrorModeState;
+  mind: MindStats;
+  ownerKey: string | null;
+  dnaSig: string | null;
   lastAction: null | 'feed' | 'clean' | 'play' | 'sleep';
   lastActionAt: number;
   tickId?: ReturnType<typeof setInterval>;
@@ -140,6 +153,7 @@ export interface MetaPetState {
   confirmMirrorCross: () => void;
   completeMirrorMode: (outcome: MirrorOutcome, note?: string) => void;
   refreshConsent: (durationMinutes: number) => void;
+  reattestDna: () => void;
 }
 
 export type MirrorPhase = 'idle' | 'entering' | 'crossed' | 'returning';
@@ -317,6 +331,9 @@ export function createMetaPetWebStore(
     lastReward: null,
     petType: 'geometric',
     mirrorMode: { ...DEFAULT_MIRROR_MODE },
+    mind: { ...DEFAULT_MIND },
+    ownerKey: loadOwnerKey(),
+    dnaSig: loadDnaSig(),
     lastAction: null,
     lastActionAt: 0,
 
@@ -361,7 +378,14 @@ export function createMetaPetWebStore(
 
     setGenome(genome, traits) {
       if (get().systemState === 'sealed') return;
-      set({ genome, traits: normalizeTraits(genome, traits) });
+      const ownerKey = ensureOwnerKey();
+      const dnaSig = ownerKey ? ensureDnaSig(genome, ownerKey) : null;
+      set({
+        genome,
+        traits: normalizeTraits(genome, traits),
+        ownerKey,
+        dnaSig,
+      });
     },
 
     setPetType(petType) {
@@ -435,9 +459,18 @@ export function createMetaPetWebStore(
 
       const id = scheduleInterval(() => {
         if (get().systemState === 'sealed') return;
-        const { vitals, evolution } = get();
-        const result = runTick(vitals, evolution);
-        set({ vitals: result.vitals, evolution: result.evolution });
+        const { vitals, evolution, mind, genome, ownerKey, dnaSig } = get();
+        const result = runTick(vitals, evolution, {
+          mind,
+          genome,
+          ownerKey,
+          dnaSig,
+        });
+        set({
+          vitals: result.vitals,
+          evolution: result.evolution,
+          mind: result.mind,
+        });
       }, tickMs);
 
       set({ tickId: id as ReturnType<typeof setInterval> });
@@ -466,38 +499,75 @@ export function createMetaPetWebStore(
 
     feed() {
       if (get().systemState === 'sealed') return;
+      if (get().mind.sovereignty.quarantine) return;
       set(state => ({
         vitals: applyInteraction(state.vitals, 'feed'),
         evolution: gainExperience(state.evolution, 5),
+        mind: {
+          ...state.mind,
+          sovereignty: registerExternalNudge(applyBondInteraction(state.mind.sovereignty)),
+        },
       }));
       get().setLastAction('feed');
     },
 
     clean() {
       if (get().systemState === 'sealed') return;
+      if (get().mind.sovereignty.quarantine) return;
       set(state => ({
         vitals: applyInteraction(state.vitals, 'clean'),
         evolution: gainExperience(state.evolution, 5),
+        mind: {
+          ...state.mind,
+          sovereignty: registerExternalNudge(applyBondInteraction(state.mind.sovereignty)),
+        },
       }));
       get().setLastAction('clean');
     },
 
     play() {
       if (get().systemState === 'sealed') return;
+      if (get().mind.sovereignty.quarantine) return;
       set(state => ({
         vitals: applyInteraction(state.vitals, 'play'),
         evolution: gainExperience(state.evolution, 10),
+        mind: {
+          ...state.mind,
+          sovereignty: registerExternalNudge(applyBondInteraction(state.mind.sovereignty)),
+        },
       }));
       get().setLastAction('play');
     },
 
     sleep() {
       if (get().systemState === 'sealed') return;
+      if (get().mind.sovereignty.quarantine) return;
       set(state => ({
         vitals: applyInteraction(state.vitals, 'sleep'),
         evolution: gainExperience(state.evolution, 3),
+        mind: {
+          ...state.mind,
+          sovereignty: registerExternalNudge(applyBondInteraction(state.mind.sovereignty)),
+        },
       }));
       get().setLastAction('sleep');
+    },
+
+    reattestDna() {
+      const { genome, ownerKey } = get();
+      if (!genome || !ownerKey) return;
+      const sig = reattest(genome, ownerKey);
+      set(state => ({
+        dnaSig: sig,
+        mind: {
+          ...state.mind,
+          sovereignty: {
+            ...state.mind.sovereignty,
+            quarantine: false,
+            trustInside: 100,
+          },
+        },
+      }));
     },
 
     tryEvolve() {
